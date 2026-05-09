@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">giatapp</string>
+    <string name="app_name">GaitApp</string>
     <string name="title_activity_main">giatapp</string>
     <string name="package_name">com.gaitapp.app</string>
     <string name="custom_url_scheme">com.gaitapp.app</string>
