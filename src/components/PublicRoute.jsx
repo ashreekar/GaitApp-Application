@@ -1,9 +1,9 @@
+import React from "react";
 import { Navigate } from "react-router-dom";
+import { isLoggedIn } from "../lib/auth";
 
 const PublicRoute = ({ children }) => {
-  const session = false;
-
-  if (session) {
+  if (isLoggedIn()) {
     return <Navigate to="/" replace />;
   }
 

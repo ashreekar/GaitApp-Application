@@ -1,62 +1,72 @@
 import React, { useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import api from "../lib/axiosinstance";
+import { API } from "../lib/api";
+import { setSession } from "../lib/auth";
+import { useLoader } from "../context/LoaderContext";
 
 const Login = ({ onBack }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const { setLoading } = useLoader();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+      const res = await api.post(API.login, {
+        email,
+        password,
+      });
+
+      const { user, accessToken } = res.data.data;
+
+      setSession({
+        user,
+        token: accessToken,
+      });
+
+      // Capacitor-safe navigation
+      window.location.href = "/";
+
+    } catch (err) {
+      console.log("Login error:", err.response?.data || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col">
 
-      {/* Back Button */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1 text-slate-500 mb-6 w-fit"
-      >
+      <button onClick={onBack} className="flex items-center gap-1 mb-6">
         <ArrowLeft size={18} />
-        <span className="text-sm font-medium">Back</span>
+        Back
       </button>
 
-      {/* Heading */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">
-          Login
-        </h2>
+      <h2 className="text-2xl font-bold">Login</h2>
 
-        <p className="text-sm text-slate-500 mt-1">
-          Sign in to continue
-        </p>
-      </div>
+      <form onSubmit={handleLogin} className="flex flex-col gap-4 mt-4">
 
-      {/* Form */}
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(e) => e.preventDefault()}
-      >
-
-        {/* Email */}
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500"
+          className="border p-3 rounded-xl"
         />
 
-        {/* Password */}
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500"
+          className="border p-3 rounded-xl"
         />
 
-        {/* Login Button */}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold active:scale-[0.98] transition"
-        >
+        <button className="bg-blue-600 text-white py-3 rounded-xl">
           Login
         </button>
 
