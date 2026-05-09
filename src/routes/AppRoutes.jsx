@@ -1,6 +1,13 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+} from "react-router-dom";
 
 import Layout from "../components/Layout";
+
+import ProtectedRoute from "../components/ProtectedRoute";
+import PublicRoute from "../components/PublicRoute";
 
 import Home from "../pages/Home";
 import Auth from "../pages/Auth";
@@ -12,15 +19,58 @@ export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/live" element={<Live />} />
-          <Route path="/history" element={<History />} />
 
-          {/* Dynamic Route */}
-          <Route path="/details/:id" element={<Details />} />
+        <Routes>
+
+          {/* Public Route */}
+          <Route
+            path="/auth"
+            element={
+              <PublicRoute>
+                <Auth />
+              </PublicRoute>
+            }
+          />
+
+          {/* Protected Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/live"
+            element={
+              <ProtectedRoute>
+                <Live />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <History />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/details/:id"
+            element={
+              <ProtectedRoute>
+                <Details />
+              </ProtectedRoute>
+            }
+          />
+
         </Routes>
+
       </Layout>
     </BrowserRouter>
   );
