@@ -4,6 +4,7 @@ import api from "../lib/axiosinstance";
 import { API } from "../lib/api";
 import { setSession } from "../lib/auth";
 import { useLoader } from "../context/LoaderContext";
+import toast from "react-hot-toast";
 
 const Login = ({ onBack }) => {
   const [email, setEmail] = useState("");
@@ -23,6 +24,7 @@ const Login = ({ onBack }) => {
 
       const { user, accessToken } = res.data.data;
 
+      toast.success("Login successful!");
       setSession({
         user,
         token: accessToken,
@@ -33,6 +35,7 @@ const Login = ({ onBack }) => {
 
     } catch (err) {
       console.log("Login error:", err.response?.data || err.message);
+      toast.error(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }

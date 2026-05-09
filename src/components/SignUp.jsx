@@ -4,6 +4,7 @@ import api from "../lib/axiosinstance";
 import { API } from "../lib/api";
 import { setSession } from "../lib/auth";
 import { useLoader } from "../context/LoaderContext";
+import toast from "react-hot-toast";
 
 const SignUp = ({ onBack }) => {
   const [formData, setFormData] = useState({
@@ -27,11 +28,13 @@ const SignUp = ({ onBack }) => {
         user,
         token: accessToken,
       });
+      toast.success("Login successful!");
 
       window.location.href = "/";
 
     } catch (err) {
       console.log("Signup error:", err.response?.data || err.message);
+      toast.error(err.response?.data?.message || "Login failed");
     }finally{
       setLoading(false);
     }
