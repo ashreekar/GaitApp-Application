@@ -1,11 +1,4 @@
 export const homeData = {
-  patient: {
-    name: "Ashreek",
-    initials: "A",
-    postOpWeek: 6,
-    surgery: "ACL Reconstruction",
-  },
-
   recovery: {
     score: 78,
     trend: 12,
@@ -17,14 +10,23 @@ export const homeData = {
     velocity: 0.78,
     asymmetry: 14,
     fallRisk: "MODERATE",
-    steps: 5421,
-    stepGoal: 8000,
   },
 
   gaitIndex: {
     pronationLeft: 10,
     pronationRight: 6,
     pronationIndex: 12,
+  },
+
+  groundContact: {
+    left: 820,
+    right: 690,
+    unit: "ms",
+  },
+
+  stepMetrics: {
+    steps: 5421,
+    goal: 8000,
   },
 
   lengthMetrics: {
@@ -42,3 +44,17 @@ export const homeData = {
     { id: 3, name: "Step Ups", sets: 3, target: "10 reps", completed: true, icon: "📈" },
   ],
 };
+
+export const weeklyProgress = [
+  { week: 1, symmetry: 60 },
+  { week: 2, symmetry: 65 },
+  { week: 3, symmetry: 70 },
+  { week: 4, symmetry: 78 },
+  { week: 5, symmetry: 82 },
+  { week: 6, symmetry: 85 },
+];
+
+export const gaitCycleData = [
+  { name: "Left", stance: 62, swing: 38 },
+  { name: "Right", stance: 58, swing: 42 },
+];

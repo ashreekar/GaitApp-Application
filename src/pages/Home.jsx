@@ -1,36 +1,40 @@
-import RecoveryScore from "../components/home/RecoverySection";
-import IndexCards from "../components/home/TelemetrySection";
-import StepLengthCards from "../components/home/LengthSection";
+import { homeData, weeklyProgress, gaitCycleData } from "../lib/homeData";
+
+import RecoverySection from "../components/home/RecoverySection";
+import TelemetrySection from "../components/home/TelemetrySection";
+import LengthSection from "../components/home/LengthSection";
 import PhysioModules from "../components/home/PhysioSection";
-import { homeData } from "../lib/homeData";
+import FootPronationCard from "../components/home/FootPronationCard";
+import StepsWideCard from "../components/home/StepsWodeCard";
+import GroundContactTimeCard from "../components/home/GroundContactTime";
+import PronationIndexCard from "../components/home/PronationIndexCard";
+import SymmetryProgressCard from "../components/home/SymmentryProgressCard";
+import GaitCycleCard from "../components/home/GaitCycleDistributionCard";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#F2F4F7] flex flex-col pt-safe">
-      
-      <main className="flex-1 flex flex-col space-y-1 pb-32">
-        
-        {/* Section 1: Recovery (Hero Section) */}
-        <section className="bg-white px-5 pt-8 pb-6 rounded-b-[32px] shadow-sm">
-          <RecoveryScore data={homeData.recovery} />
-        </section>
+    <div className="min-h-screen bg-[#F2F4F7] flex flex-col pb-32 space-y-4">
 
-        {/* Section 2: Telemetry (The Grid) */}
-        <section className="px-4 pt-6">
-          <IndexCards data={homeData.telemetry} />
-        </section>
+      <RecoverySection data={homeData.recovery} />
 
-        {/* Section 3: Step & Stride (Analysis) */}
-        <section className="px-4 pt-4">
-          <StepLengthCards data={homeData.lengthMetrics} />
-        </section>
+      <TelemetrySection data={homeData.telemetry} />
 
-        {/* Section 4: Physio Modules (Action Items) */}
-        <section className="px-4 pt-6 pb-4">
-          <PhysioModules data={homeData.physio} />
-        </section>
+      <StepsWideCard data={homeData.stepMetrics} />
 
-      </main>
+      <FootPronationCard data={homeData.gaitIndex} />
+
+      <LengthSection data={homeData.lengthMetrics} />
+
+      <GroundContactTimeCard data={homeData.groundContact} />
+
+      <PronationIndexCard data={homeData.gaitIndex} />
+
+      <SymmetryProgressCard data={weeklyProgress} />
+
+      <GaitCycleCard data={gaitCycleData} />
+
+      <PhysioModules data={homeData.physio} />
+
     </div>
   );
 }
