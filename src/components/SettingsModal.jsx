@@ -42,7 +42,11 @@ export default function SettingsModal({ open, onClose }) {
                 Profile
               </button>
 
-              <button className="py-3 rounded-xl bg-slate-100">
+              <button
+                onClick={() => {
+                  window.location.href = "/settings";
+                }}
+                className="py-3 rounded-xl bg-slate-100">
                 Settings
               </button>
 

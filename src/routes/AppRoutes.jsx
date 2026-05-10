@@ -14,6 +14,7 @@ import Auth from "../pages/Auth";
 import Live from "../pages/Live";
 import History from "../pages/History";
 import Details from "../pages/Details";
+import Settings from "../pages/Settings";
 
 export default function AppRoutes() {
   return (
@@ -68,6 +69,12 @@ export default function AppRoutes() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/settings" element={
+            <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
 
         </Routes>
 
