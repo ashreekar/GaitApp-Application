@@ -1,15 +1,21 @@
+import { LineChart } from "@mui/x-charts/LineChart";
 import {
-  LineChart
-} from "@mui/x-charts/LineChart";
+  Battery,
+  BatteryLow,
+  BatteryMedium,
+  Footprints,
+  Activity,
+  Waves,
+} from "lucide-react";
+
 import { useGaitSimulation } from "../hooks/useGaitSimulation";
 import { PressureHeatmap } from "../components/live/FootHeatmapPanel";
-import { Battery, BatteryLow, BatteryMedium, Footprints, Timer } from "lucide-react";
 
 const SENSOR_IDS = [
   "T1", "T2", "T3", "T4", "T5",
   "M1", "M2", "M3", "M4", "M5",
   "MM", "CM", "LM",
-  "MH", "CH", "LH"
+  "MH", "CH", "LH",
 ];
 
 export default function LivePage() {
@@ -17,173 +23,317 @@ export default function LivePage() {
   const liveData = useGaitSimulation(true);
 
   const getBatteryIcon = (level) => {
-    if (level > 60) return <Battery size={20} color="#22c55e" />;
-    if (level > 20) return <BatteryMedium size={20} color="#f59e0b" />;
-    return <BatteryLow size={20} color="#ef4444" />;
+    if (level > 60) {
+      return <Battery size={18} className="text-green-500" />;
+    }
+
+    if (level > 20) {
+      return <BatteryMedium size={18} className="text-amber-500" />;
+    }
+
+    return <BatteryLow size={18} className="text-red-500" />;
   };
 
   return (
-    <div
-      style={{
-        background: "#f8f9fa",
-        minHeight: "100vh",
-        paddingBottom: "40px",
-        fontFamily: "sans-serif",
-        color: "#202124",
-      }}
-    >
-      <main style={{ padding: "20px", backgroundColor: "#f9fafb" }}>
-        {/* BATTERY + PHASE GRID */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "16px"
-          }}
-        >
-          {/* Battery Card */}
-          <div
-            style={{
-              background: "white",
-              padding: "16px",
-              borderRadius: "24px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            }}
-          >
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#666" }}>Battery</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", fontWeight: "600" }}>L</span>
-                {getBatteryIcon(liveData.battery.L)}
-                <span style={{ fontSize: "13px" }}>{Math.round(liveData.battery.L)}%</span>
+    <div className="min-h-screen bg-[#F3F4F6] pb-28">
+
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
+      <div className="sticky top-0 z-40 bg-[#F3F4F6]/90 backdrop-blur-xl px-5 pt-6 pb-4">
+
+        <h1 className="text-2xl font-bold text-[#111827]">
+          Live Session
+        </h1>
+
+        <p className="text-sm text-gray-500 mt-1">
+          Real-time gait monitoring
+        </p>
+
+      </div>
+
+      {/* =====================================================
+          BODY
+      ===================================================== */}
+
+      <div className="px-4 space-y-5">
+
+        {/* =====================================================
+            TOP STATUS CARDS
+        ===================================================== */}
+
+        <div className="grid grid-cols-2 gap-4">
+
+          {/* BATTERY */}
+
+          <div className="bg-white rounded-[28px] p-5 shadow-sm">
+
+            <div className="flex items-center justify-between mb-5">
+
+              <div>
+                <div className="text-[11px] uppercase font-bold tracking-wider text-gray-400">
+                  Battery
+                </div>
+
+                <div className="text-sm text-gray-500 mt-1">
+                  Insoles
+                </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", fontWeight: "600" }}>R</span>
-                {getBatteryIcon(liveData.battery.R)}
-                <span style={{ fontSize: "13px" }}>{Math.round(liveData.battery.R)}%</span>
+
+              <div className="bg-[#F3F4F6] rounded-2xl p-3">
+                <Activity size={18} className="text-gray-700" />
               </div>
+
             </div>
+
+            <div className="space-y-4">
+
+              <BatteryRow
+                label="Left"
+                value={liveData.battery.L}
+                icon={getBatteryIcon(liveData.battery.L)}
+              />
+
+              <BatteryRow
+                label="Right"
+                value={liveData.battery.R}
+                icon={getBatteryIcon(liveData.battery.R)}
+              />
+
+            </div>
+
           </div>
 
-          {/* Phase Card */}
-          <div
-            style={{
-              background: "white",
-              padding: "16px",
-              borderRadius: "24px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between"
-            }}
-          >
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#666" }}>Active Phase</h4>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
-                style={{
-                  background: liveData.phase.includes("Stance") ? "#eff6ff" : "#f3f4f6",
-                  padding: "8px",
-                  borderRadius: "12px"
-                }}
-              >
+          {/* ACTIVE PHASE */}
+
+          <div className="bg-white rounded-[28px] p-5 shadow-sm">
+
+            <div className="flex items-center justify-between mb-5">
+
+              <div>
+                <div className="text-[11px] uppercase font-bold tracking-wider text-gray-400">
+                  Active Phase
+                </div>
+
+                <div className="text-sm text-gray-500 mt-1">
+                  Gait cycle
+                </div>
+              </div>
+
+              <div className="bg-blue-50 rounded-2xl p-3">
                 <Footprints
-                  size={24}
-                  color={liveData.phase.includes("Left") ? "#3b82f6" : liveData.phase.includes("Right") ? "#8b5cf6" : "#9ca3af"}
+                  size={18}
+                  className="text-blue-600"
                 />
               </div>
-              <div style={{ lineHeight: "1.2" }}>
-                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#111827" }}>
-                  {liveData.phase}
-                </div>
-                <div style={{ fontSize: "11px", color: "#9ca3af" }}>Gait Cycle</div>
+
+            </div>
+
+            <div className="mt-2">
+
+              <div className="text-xl font-bold text-[#111827] leading-tight">
+                {liveData.phase}
               </div>
             </div>
+
           </div>
+
         </div>
-      </main>
-      <main style={{ padding: "20px" }}>
-        {/* HEATMAPS */}
-        <div
-          style={{
-            background: "white",
-            borderRadius: "30px",
-            padding: "30px",
-            marginBottom: "30px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "10px",
-            }}
-          >
+
+        {/* =====================================================
+            HEATMAP CARD
+        ===================================================== */}
+
+        <div className="bg-white rounded-[32px] p-5 shadow-sm">
+
+          <div className="flex items-center justify-between mb-5">
+
+            <div>
+
+              <h2 className="text-lg font-bold text-[#111827]">
+                Pressure Heatmap
+              </h2>
+
+              <p className="text-sm text-gray-500 mt-1">
+                Real-time plantar pressure
+              </p>
+
+            </div>
+
+            <div className="bg-[#F3F4F6] rounded-2xl p-3">
+              <Waves size={18} className="text-gray-700" />
+            </div>
+
+          </div>
+
+          {/* MOBILE FRIENDLY */}
+
+          <div className="flex items-center justify-center gap-2 overflow-hidden">
+
             <PressureHeatmap
               side="LEFT"
               grid={liveData.leftPressure}
+              compact
             />
 
             <PressureHeatmap
               side="RIGHT"
               grid={liveData.rightPressure}
+              compact
             />
+
           </div>
+
         </div>
 
-        {/* LEFT FOOT */}
-        <GraphContainer title="Left Foot - All 16 Sensors">
+        {/* =====================================================
+            LEFT FOOT CHART
+        ===================================================== */}
+
+        <ChartCard title="Left Foot Sensors">
+
           <SensorChart
             history={liveData.history}
             keys={SENSOR_IDS.map((id) => `${id}_L`)}
           />
-        </GraphContainer>
 
-        {/* RIGHT FOOT */}
-        <GraphContainer title="Right Foot - All 16 Sensors">
+        </ChartCard>
+
+        {/* =====================================================
+            RIGHT FOOT CHART
+        ===================================================== */}
+
+        <ChartCard title="Right Foot Sensors">
+
           <SensorChart
             history={liveData.history}
             keys={SENSOR_IDS.map((id) => `${id}_R`)}
           />
-        </GraphContainer>
 
-        {/* AVG */}
-        <GraphContainer title="Average Pressure Left vs Right">
+        </ChartCard>
+
+        {/* =====================================================
+            AVERAGE PRESSURE
+        ===================================================== */}
+
+        <ChartCard title="Average Pressure">
+
           <SensorChart
             history={liveData.history}
             keys={["AVG_L", "AVG_R"]}
             thick
           />
-        </GraphContainer>
 
-      </main>
+        </ChartCard>
+
+      </div>
     </div>
   );
 }
 
-/* ============================= */
-/* SENSOR CHART */
-/* ============================= */
+/* =========================================================
+   BATTERY ROW
+========================================================= */
 
-function SensorChart({ history, keys, thick = false }) {
+function BatteryRow({
+  label,
+  value,
+  icon,
+}) {
+  return (
+    <div className="flex items-center justify-between">
+
+      <div className="flex items-center gap-3">
+
+        <div className="bg-gray-100 rounded-xl px-3 py-2 text-xs font-bold text-gray-700">
+          {label}
+        </div>
+
+        {icon}
+
+      </div>
+
+      <div className="text-sm font-semibold text-[#111827]">
+        {Math.round(value)}%
+      </div>
+
+    </div>
+  );
+}
+
+/* =========================================================
+   CHART CARD
+========================================================= */
+
+function ChartCard({
+  title,
+  children,
+}) {
+  return (
+    <div className="bg-white rounded-[32px] p-5 shadow-sm">
+
+      <div className="flex items-center justify-between mb-5">
+
+        <div>
+
+          <h2 className="text-lg font-bold text-[#111827]">
+            {title}
+          </h2>
+
+          <p className="text-sm text-gray-500 mt-1">
+            Live sensor analytics
+          </p>
+
+        </div>
+
+        <div className="bg-[#F3F4F6] rounded-2xl p-3">
+          <Activity size={18} className="text-gray-700" />
+        </div>
+
+      </div>
+
+      {children}
+
+    </div>
+  );
+}
+
+/* =========================================================
+   SENSOR CHART
+========================================================= */
+
+function SensorChart({
+  history,
+  keys,
+  thick = false,
+}) {
 
   const xLabels = history.map((d) => d.displayTime);
 
-  const series = keys.map((key) => ({
+  const series = keys.map((key, index) => ({
     data: history.map((d) => d[key]),
+
     label: key,
+
     showMark: false,
-    curve: "linear",
-    strokeWidth: thick ? 4 : 2,
+
+    curve: "natural",
+
+    area: thick,
+
+    strokeWidth: thick ? 4 : 1.8,
   }));
 
   return (
-    <div style={{ width: "100%", height: 350 }}>
+    <div className="w-full h-[260px]">
+
       <LineChart
+        height={260}
         xAxis={[
           {
             scaleType: "point",
             data: xLabels,
-            label: "Time",
           },
         ]}
         yAxis={[
@@ -192,34 +342,40 @@ function SensorChart({ history, keys, thick = false }) {
             max: 1024,
           },
         ]}
+        series={series}
         slotProps={{
           legend: {
             hidden: true,
           },
         }}
-        series={series}
-        height={350}
+        sx={{
+          "& .MuiLineElement-root": {
+            strokeWidth: thick ? 4 : 2,
+          },
+
+          "& .MuiAreaElement-root": {
+            fillOpacity: 0.08,
+          },
+
+          "& .MuiChartsAxis-line": {
+            stroke: "#E5E7EB",
+          },
+
+          "& .MuiChartsAxis-tick": {
+            stroke: "#E5E7EB",
+          },
+
+          "& .MuiChartsAxis-tickLabel": {
+            fill: "#9CA3AF",
+            fontSize: 10,
+          },
+
+          "& .MuiChartsGrid-line": {
+            stroke: "#F3F4F6",
+          },
+        }}
       />
-    </div>
-  );
-}
 
-/* ============================= */
-/* REUSABLE GRAPH BOX */
-/* ============================= */
-
-function GraphContainer({ title, children }) {
-  return (
-    <div
-      style={{
-        background: "white",
-        borderRadius: "24px",
-        padding: "20px",
-        marginBottom: "30px",
-      }}
-    >
-      <h3 style={{ marginBottom: "20px" }}>{title}</h3>
-      {children}
     </div>
   );
 }
