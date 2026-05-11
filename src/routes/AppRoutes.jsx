@@ -15,6 +15,7 @@ import Live from "../pages/Live";
 import History from "../pages/History";
 import Details from "../pages/Details";
 import Settings from "../pages/Settings";
+import MetricsPage from "../pages/Matrix";
 
 export default function AppRoutes() {
   return (
@@ -73,6 +74,12 @@ export default function AppRoutes() {
           <Route path="/settings" element={
             <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            } />
+
+             <Route path="/matrix" element={
+            <ProtectedRoute>
+                <MetricsPage />
               </ProtectedRoute>
             } />
 

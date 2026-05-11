@@ -9,7 +9,7 @@ export default function Navbar() {
   const navItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "Live", path: "/live", icon: Radio },
-    { name: "Metrics", path: "/details/1", icon: Activity },
+    { name: "Metrics", path: "/matrix", icon: Activity },
     { name: "History", path: "/history", icon: History },
   ];
 
