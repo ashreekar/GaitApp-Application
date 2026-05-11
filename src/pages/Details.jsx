@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-
+import React from "react";
 import {
   ArrowLeft,
   Activity,
@@ -117,9 +117,7 @@ export default function SessionDetails() {
   return (
     <div className="min-h-screen bg-[#F3F4F6] pb-32">
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
+      {/* HEADER */}
 
       <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-gray-100">
 
@@ -152,9 +150,7 @@ export default function SessionDetails() {
 
       <div className="p-4 space-y-5">
 
-        {/* =====================================================
-            SUMMARY CARDS
-        ===================================================== */}
+        {/* SUMMARY */}
 
         <div className="grid grid-cols-2 gap-4">
 
@@ -184,9 +180,7 @@ export default function SessionDetails() {
 
         </div>
 
-        {/* =====================================================
-            SESSION INFO
-        ===================================================== */}
+        {/* SESSION INFO */}
 
         <SectionCard title="Session Information">
 
@@ -212,102 +206,43 @@ export default function SessionDetails() {
 
         </SectionCard>
 
-        {/* =====================================================
-            CADENCE GRAPH
-        ===================================================== */}
+        {/* CADENCE GRAPH */}
 
         <GraphCard title="Cadence Analysis">
 
-          <LineChart
-            height={260}
-            xAxis={[
-              {
-                scaleType: "point",
-                data: timeLabels,
-              },
-            ]}
-            series={[
-              {
-                data: cadenceData,
-                label: "Cadence",
-                showMark: false,
-                curve: "linear",
-              },
-            ]}
-            slotProps={{
-              legend: {
-                hidden: true,
-              },
-            }}
+          <FilledChart
+            labels={timeLabels}
+            data={cadenceData}
+            label="Cadence"
           />
 
         </GraphCard>
 
-        {/* =====================================================
-            IMPACT GRAPH
-        ===================================================== */}
+        {/* IMPACT GRAPH */}
 
         <GraphCard title="Impact Force">
 
-          <LineChart
-            height={260}
-            xAxis={[
-              {
-                scaleType: "point",
-                data: timeLabels,
-              },
-            ]}
-            series={[
-              {
-                data: impactData,
-                label: "Impact",
-                showMark: false,
-                curve: "linear",
-              },
-            ]}
-            slotProps={{
-              legend: {
-                hidden: true,
-              },
-            }}
+          <FilledChart
+            labels={timeLabels}
+            data={impactData}
+            label="Impact"
           />
 
         </GraphCard>
 
-        {/* =====================================================
-            FSR GRAPH
-        ===================================================== */}
+        {/* FSR GRAPH */}
 
         <GraphCard title="Pressure Sensor (FSR)">
 
-          <LineChart
-            height={260}
-            xAxis={[
-              {
-                scaleType: "point",
-                data: timeLabels,
-              },
-            ]}
-            series={[
-              {
-                data: fsrData,
-                label: "FSR",
-                showMark: false,
-                curve: "linear",
-              },
-            ]}
-            slotProps={{
-              legend: {
-                hidden: true,
-              },
-            }}
+          <FilledChart
+            labels={timeLabels}
+            data={fsrData}
+            label="FSR"
           />
 
         </GraphCard>
 
-        {/* =====================================================
-            PITCH + ROLL
-        ===================================================== */}
+        {/* FOOT ORIENTATION */}
 
         <GraphCard title="Foot Orientation">
 
@@ -324,13 +259,13 @@ export default function SessionDetails() {
                 data: pitchData,
                 label: "Pitch",
                 showMark: false,
-                curve: "linear",
+                curve: "natural",
               },
               {
                 data: rollData,
                 label: "Roll",
                 showMark: false,
-                curve: "linear",
+                curve: "natural",
               },
             ]}
             slotProps={{
@@ -338,77 +273,60 @@ export default function SessionDetails() {
                 hidden: false,
               },
             }}
+            sx={{
+              "& .MuiLineElement-root": {
+                strokeWidth: 3,
+              },
+            }}
           />
 
         </GraphCard>
 
-        {/* =====================================================
-            RAW FRAME DATA
-        ===================================================== */}
-
-        <SectionCard title="Frame Data">
-
-          <div className="space-y-4">
-
-            {frames.map((frame, index) => (
-              <div
-                key={index}
-                className="
-                  bg-gray-50
-                  rounded-2xl
-                  p-4
-                "
-              >
-
-                <div className="flex items-center justify-between mb-3">
-
-                  <h3 className="font-bold text-gray-900">
-                    Frame #{index + 1}
-                  </h3>
-
-                  <div className="text-xs text-gray-400">
-                    {frame.ts}
-                  </div>
-
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm">
-
-                  <MiniStat label="Steps" value={frame.steps} />
-                  <MiniStat label="Cadence" value={frame.cadence} />
-                  <MiniStat label="Impact" value={frame.impact} />
-                  <MiniStat label="Pitch" value={frame.pitch} />
-                  <MiniStat label="Roll" value={frame.roll} />
-                  <MiniStat label="FSR" value={frame.fsrRaw} />
-
-                </div>
-
-                {/* ACCEL */}
-                <div className="mt-4">
-
-                  <div className="text-xs font-semibold text-gray-400 mb-2 uppercase">
-                    Accelerometer
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-
-                    <AccelCard axis="X" value={frame.accel.x} />
-                    <AccelCard axis="Y" value={frame.accel.y} />
-                    <AccelCard axis="Z" value={frame.accel.z} />
-
-                  </div>
-
-                </div>
-
-              </div>
-            ))}
-
-          </div>
-
-        </SectionCard>
-
+        {/* FRAME SEARCH */}
+        <FrameSearchCard frames={frames} />
       </div>
     </div>
+  );
+}
+
+/* =========================================================
+   FILLED GRAPH
+========================================================= */
+
+function FilledChart({ labels, data, label }) {
+  return (
+    <LineChart
+      height={260}
+      xAxis={[
+        {
+          scaleType: "point",
+          data: labels,
+        },
+      ]}
+      series={[
+        {
+          data,
+          label,
+          area: true,
+          showMark: false,
+          curve: "natural",
+        },
+      ]}
+      slotProps={{
+        legend: {
+          hidden: true,
+        },
+      }}
+      sx={{
+        "& .MuiAreaElement-root": {
+          fillOpacity: 0.15,
+        },
+
+        "& .MuiLineElement-root": {
+          strokeWidth: 3,
+        },
+      }}
+    />
   );
 }
 
@@ -561,5 +479,170 @@ function AccelCard({ axis, value }) {
       </div>
 
     </div>
+  );
+}
+
+function FrameSearchCard({ frames }) {
+
+  const [query, setQuery] = React.useState("");
+
+  const filteredFrames = frames.filter((frame) =>
+    frame.steps.toString().includes(query)
+  );
+
+  return (
+    <SectionCard title="Frame Explorer">
+
+      {/* SEARCH */}
+
+      <div className="mb-5">
+
+        <input
+          type="text"
+          placeholder="Search by step number..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="
+            w-full
+            bg-gray-100
+            rounded-2xl
+            px-4
+            py-4
+            outline-none
+            text-sm
+            font-medium
+            placeholder:text-gray-400
+          "
+        />
+
+      </div>
+
+      {/* EMPTY */}
+
+      {filteredFrames.length === 0 && (
+        <div
+          className="
+            py-10
+            text-center
+            text-sm
+            text-gray-400
+          "
+        >
+          No matching frames found
+        </div>
+      )}
+
+      {/* RESULTS */}
+
+      <div className="space-y-4">
+
+        {filteredFrames.map((frame, index) => (
+          <div
+            key={index}
+            className="
+              bg-gray-50
+              rounded-3xl
+              p-4
+            "
+          >
+
+            {/* HEADER */}
+
+            <div className="flex items-center justify-between mb-4">
+
+              <div>
+
+                <div className="text-lg font-bold text-gray-900">
+                  Step #{frame.steps}
+                </div>
+
+                <div className="text-xs text-gray-400 mt-1">
+                  Timestamp: {frame.ts}
+                </div>
+
+              </div>
+
+              <div
+                className="
+                  px-3
+                  py-1
+                  rounded-full
+                  bg-white
+                  text-xs
+                  font-semibold
+                  text-gray-600
+                "
+              >
+                {frame.activity}
+              </div>
+
+            </div>
+
+            {/* METRICS */}
+
+            <div className="grid grid-cols-2 gap-3">
+
+              <MiniStat
+                label="Cadence"
+                value={frame.cadence}
+              />
+
+              <MiniStat
+                label="Impact"
+                value={frame.impact}
+              />
+
+              <MiniStat
+                label="Pitch"
+                value={frame.pitch}
+              />
+
+              <MiniStat
+                label="Roll"
+                value={frame.roll}
+              />
+
+              <MiniStat
+                label="FSR"
+                value={frame.fsrRaw}
+              />
+
+            </div>
+
+            {/* ACCEL */}
+
+            <div className="mt-5">
+
+              <div className="text-xs font-semibold text-gray-400 uppercase mb-3">
+                Accelerometer
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+
+                <AccelCard
+                  axis="X"
+                  value={frame.accel.x}
+                />
+
+                <AccelCard
+                  axis="Y"
+                  value={frame.accel.y}
+                />
+
+                <AccelCard
+                  axis="Z"
+                  value={frame.accel.z}
+                />
+
+              </div>
+
+            </div>
+
+          </div>
+        ))}
+
+      </div>
+
+    </SectionCard>
   );
 }
