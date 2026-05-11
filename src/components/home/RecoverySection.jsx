@@ -11,7 +11,7 @@ export default function RecoverySection({ data }) {
   const statusColor = getStatusColor(data.score);
 
   return (
-    <div className="relative overflow-hidden bg-white rounded-[32px] border border-slate-50">
+    <div className="relative overflow-hidden bg-white p-6 rounded-[32px] border border-slate-50">
       {/* Background Decorative Element (Subtle Tech Grid or Pulse) */}
       <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-blue-50/50 rounded-full blur-3xl" />
 
