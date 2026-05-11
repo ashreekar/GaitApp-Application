@@ -55,7 +55,7 @@ export default function SettingsModal({ open, onClose }) {
                   logout();
                   window.location.href = "/auth";
                 }}
-                className="py-3 rounded-xl bg-red-500 text-white font-semibold"
+                className="py-3 rounded-xl bg-blue-700 text-white font-semibold"
               >
                 Logout
               </button>
