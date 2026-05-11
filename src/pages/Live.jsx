@@ -1,16 +1,9 @@
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
-
+  LineChart
+} from "@mui/x-charts/LineChart";
 import { useGaitSimulation } from "../hooks/useGaitSimulation";
 import { PressureHeatmap } from "../components/live/FootHeatmapPanel";
+import { Battery, BatteryLow, BatteryMedium, Footprints, Timer } from "lucide-react";
 
 const SENSOR_IDS = [
   "T1", "T2", "T3", "T4", "T5",
@@ -21,8 +14,13 @@ const SENSOR_IDS = [
 
 export default function LivePage() {
 
-  // PURE REACT JS
   const liveData = useGaitSimulation(true);
+
+  const getBatteryIcon = (level) => {
+    if (level > 60) return <Battery size={20} color="#22c55e" />;
+    if (level > 20) return <BatteryMedium size={20} color="#f59e0b" />;
+    return <BatteryLow size={20} color="#ef4444" />;
+  };
 
   return (
     <div
@@ -34,63 +32,76 @@ export default function LivePage() {
         color: "#202124",
       }}
     >
-      {/* HEADER */}
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          background: "rgba(255,255,255,0.9)",
-          padding: "16px 24px",
-          borderBottom: "1px solid #eee",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "12px",
-            color: "red",
-            fontWeight: "bold",
-          }}
-        >
-          REC: {(liveData.elapsedTime / 1000).toFixed(1)}s
-        </div>
-      </header>
-
-      <main style={{ padding: "20px" }}>
-
-        {/* BATTERY + PHASE */}
+      <main style={{ padding: "20px", backgroundColor: "#f9fafb" }}>
+        {/* BATTERY + PHASE GRID */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
-            marginBottom: "20px",
+            gap: "16px"
           }}
         >
+          {/* Battery Card */}
           <div
             style={{
               background: "white",
-              padding: "20px",
-              borderRadius: "20px",
+              padding: "16px",
+              borderRadius: "24px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
             }}
           >
-            <h4>Battery</h4>
-            <p>Left: {Math.round(liveData.battery.L)}%</p>
-            <p>Right: {Math.round(liveData.battery.R)}%</p>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#666" }}>Battery</h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "12px", fontWeight: "600" }}>L</span>
+                {getBatteryIcon(liveData.battery.L)}
+                <span style={{ fontSize: "13px" }}>{Math.round(liveData.battery.L)}%</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "12px", fontWeight: "600" }}>R</span>
+                {getBatteryIcon(liveData.battery.R)}
+                <span style={{ fontSize: "13px" }}>{Math.round(liveData.battery.R)}%</span>
+              </div>
+            </div>
           </div>
 
+          {/* Phase Card */}
           <div
             style={{
               background: "white",
-              padding: "20px",
-              borderRadius: "20px",
+              padding: "16px",
+              borderRadius: "24px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between"
             }}
           >
-            <h4>Phase</h4>
-            <p>{liveData.phase}</p>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#666" }}>Active Phase</h4>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  background: liveData.phase.includes("Stance") ? "#eff6ff" : "#f3f4f6",
+                  padding: "8px",
+                  borderRadius: "12px"
+                }}
+              >
+                <Footprints
+                  size={24}
+                  color={liveData.phase.includes("Left") ? "#3b82f6" : liveData.phase.includes("Right") ? "#8b5cf6" : "#9ca3af"}
+                />
+              </div>
+              <div style={{ lineHeight: "1.2" }}>
+                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#111827" }}>
+                  {liveData.phase}
+                </div>
+                <div style={{ fontSize: "11px", color: "#9ca3af" }}>Gait Cycle</div>
+              </div>
+            </div>
           </div>
         </div>
-
+      </main>
+      <main style={{ padding: "20px" }}>
         {/* HEATMAPS */}
         <div
           style={{
@@ -102,9 +113,9 @@ export default function LivePage() {
         >
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "40px",
+              display: "flex",
+              justifyContent: "center",
+              gap: "10px",
             }}
           >
             <PressureHeatmap
@@ -119,94 +130,84 @@ export default function LivePage() {
           </div>
         </div>
 
-        {/* ========================= */}
-        {/* GRAPH 1 : LEFT FOOT */}
-        {/* ========================= */}
+        {/* LEFT FOOT */}
         <GraphContainer title="Left Foot - All 16 Sensors">
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={liveData.history}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="displayTime" />
-              <YAxis domain={[0, 1024]} />
-              <Tooltip />
-              <Legend />
-
-              {SENSOR_IDS.map((id) => (
-                <Line
-                  key={id}
-                  type="monotone"
-                  dataKey={`${id}_L`}
-                  dot={false}
-                  strokeWidth={2}
-                  isAnimationActive={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+          <SensorChart
+            history={liveData.history}
+            keys={SENSOR_IDS.map((id) => `${id}_L`)}
+          />
         </GraphContainer>
 
-        {/* ========================= */}
-        {/* GRAPH 2 : RIGHT FOOT */}
-        {/* ========================= */}
+        {/* RIGHT FOOT */}
         <GraphContainer title="Right Foot - All 16 Sensors">
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={liveData.history}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="displayTime" />
-              <YAxis domain={[0, 1024]} />
-              <Tooltip />
-              <Legend />
-
-              {SENSOR_IDS.map((id) => (
-                <Line
-                  key={id}
-                  type="monotone"
-                  dataKey={`${id}_R`}
-                  dot={false}
-                  strokeWidth={2}
-                  isAnimationActive={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+          <SensorChart
+            history={liveData.history}
+            keys={SENSOR_IDS.map((id) => `${id}_R`)}
+          />
         </GraphContainer>
 
-        {/* ========================= */}
-        {/* GRAPH 3 : AVG LEFT VS RIGHT */}
-        {/* ========================= */}
+        {/* AVG */}
         <GraphContainer title="Average Pressure Left vs Right">
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={liveData.history}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="displayTime" />
-              <YAxis domain={[0, 1024]} />
-              <Tooltip />
-              <Legend />
-
-              <Line
-                type="monotone"
-                dataKey="AVG_L"
-                dot={false}
-                strokeWidth={4}
-                isAnimationActive={false}
-              />
-
-              <Line
-                type="monotone"
-                dataKey="AVG_R"
-                dot={false}
-                strokeWidth={4}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <SensorChart
+            history={liveData.history}
+            keys={["AVG_L", "AVG_R"]}
+            thick
+          />
         </GraphContainer>
+
       </main>
     </div>
   );
 }
 
+/* ============================= */
+/* SENSOR CHART */
+/* ============================= */
+
+function SensorChart({ history, keys, thick = false }) {
+
+  const xLabels = history.map((d) => d.displayTime);
+
+  const series = keys.map((key) => ({
+    data: history.map((d) => d[key]),
+    label: key,
+    showMark: false,
+    curve: "linear",
+    strokeWidth: thick ? 4 : 2,
+  }));
+
+  return (
+    <div style={{ width: "100%", height: 350 }}>
+      <LineChart
+        xAxis={[
+          {
+            scaleType: "point",
+            data: xLabels,
+            label: "Time",
+          },
+        ]}
+        yAxis={[
+          {
+            min: 0,
+            max: 1024,
+          },
+        ]}
+        slotProps={{
+          legend: {
+            hidden: true,
+          },
+        }}
+        series={series}
+        height={350}
+      />
+    </div>
+  );
+}
+
+/* ============================= */
 /* REUSABLE GRAPH BOX */
+/* ============================= */
+
 function GraphContainer({ title, children }) {
   return (
     <div
