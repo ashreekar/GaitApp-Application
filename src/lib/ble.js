@@ -1,63 +1,78 @@
 import { BleClient } from "@capacitor-community/bluetooth-le";
 
-const SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab";
-const CHAR_UUID = "87654321-4321-4321-4321-abcdefabcdef";
+export const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+export const CHAR_NOTIFY_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
 let connectedDeviceId = null;
 
-// INIT
 export async function initBLE() {
-  await BleClient.initialize();
-  console.log("BLE initialized");
+  try {
+    await BleClient.initialize({ androidNeverForLocation: true });
+    console.log("BLE Stack online");
+  } catch (err) {
+    console.error("BLE Init fail:", err);
+  }
 }
 
-// SCAN
-export async function scanDevices(onDevice) {
-  console.log("Scanning...");
-
-  await BleClient.requestLEScan({}, (result) => {
-    console.log("FOUND:", result);
-
-    if (result.deviceId) {
-      onDevice(result);
+export async function scanDevices(onDeviceFound) {
+  await BleClient.requestLEScan({
+    services: [SERVICE_UUID] 
+  }, (result) => {
+    if (result.device) {
+      onDeviceFound(result.device);
     }
   });
 
-  setTimeout(() => {
-    BleClient.stopLEScan();
-    console.log("Scan stopped");
-  }, 5000);
+  // Automatically turn off scan engine after 8 seconds if nothing is found
+  setTimeout(async () => {
+    await stopScanning();
+  }, 8000);
 }
 
-// CONNECT
-export async function connect(deviceId) {
-  console.log("Connecting:", deviceId);
+export async function stopScanning() {
+  try {
+    await BleClient.stopLEScan();
+    console.log("Scan radio disabled safely");
+  } catch (e) {
+    // Already idle
+  }
+}
 
-  await BleClient.connect(deviceId, () => {
-    console.log("Disconnected");
+export async function connectDevice(deviceId, onDisconnectCallback) {
+  // CRITICAL STEP FOR OPPO/MOTO: Scan must be stopped completely before connecting
+  await stopScanning();
+  
+  await BleClient.connect(deviceId, (id) => {
     connectedDeviceId = null;
+    if (onDisconnectCallback) onDisconnectCallback(id);
   });
 
   connectedDeviceId = deviceId;
-
-  console.log("Connected:", deviceId);
+  console.log("Device handshake completed successfully");
 }
 
-// SEND COMMAND (ON/OFF)
-export async function sendCommand(value) {
-  if (!connectedDeviceId) {
-    console.log("Not connected");
-    return;
-  }
+export async function startGaitDataStream(onDataReceived) {
+  if (!connectedDeviceId) return;
 
-  const data = new Uint8Array([value]);
-
-  await BleClient.write(
+  await BleClient.startNotifications(
     connectedDeviceId,
     SERVICE_UUID,
-    CHAR_UUID,
-    data
+    CHAR_NOTIFY_UUID,
+    (value) => {
+      // Reads 4 bytes as unsigned integer sent from ESP32
+      const data = value.getUint32(0, true); 
+      onDataReceived(data);
+    }
   );
+}
 
-  console.log("Sent:", value);
+export async function disconnectDevice() {
+  if (connectedDeviceId) {
+    try {
+      await BleClient.disconnect(connectedDeviceId);
+    } catch (e) {
+      console.error(e);
+    }
+    connectedDeviceId = null;
+  }
 }
