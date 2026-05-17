@@ -10,6 +10,7 @@ import {
 
 import { useGaitSimulation } from "../hooks/useGaitSimulation";
 import { PressureHeatmap } from "../components/live/FootHeatmapPanel";
+import { useGaitStore, SENSOR_KEYS } from "../store/gaitStore";
 
 const SENSOR_IDS = [
   "T1", "T2", "T3", "T4", "T5",
@@ -20,7 +21,8 @@ const SENSOR_IDS = [
 
 export default function LivePage() {
 
-  const liveData = useGaitSimulation(true);
+  // const liveData = useGaitSimulation(true);
+  const liveData = useGaitStore((state) => state.liveData);
 
   const getBatteryIcon = (level) => {
     if (level > 60) {
@@ -33,6 +35,14 @@ export default function LivePage() {
 
     return <BatteryLow size={18} className="text-red-500" />;
   };
+
+  if (!liveData.history || liveData.history.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Waiting for sensor telemetry...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] pb-28">
