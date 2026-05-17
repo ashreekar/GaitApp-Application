@@ -6,7 +6,11 @@ export default function App() {
   return (
     <LoaderProvider>
       <AppRoutes />
-      <Toaster position="top-center" />
+      <Toaster position="bottom-center"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 3500,
+        }} />
     </LoaderProvider>
   );
 }

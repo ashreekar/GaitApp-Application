@@ -1,5 +1,6 @@
 import { BleClient } from "@capacitor-community/bluetooth-le";
 import { useGaitStore, SENSOR_KEYS } from "../store/gaitStore";
+import { showToast } from "./toastUtils"; // Import your new custom toasts
 
 export const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 export const CHAR_NOTIFY_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
@@ -12,10 +13,13 @@ export async function initBLE() {
     console.log("BLE Stack online");
   } catch (err) {
     console.error("BLE Init fail:", err);
+    showToast.error("Bluetooth Disabled", "Please enable Bluetooth to connect sensors.");
   }
 }
 
 export async function scanDevices(onDeviceFound) {
+  showToast.loading("Scanning", "Looking for Gait Sensor Modules...");
+  
   await BleClient.requestLEScan({ services: [SERVICE_UUID] }, (result) => {
     if (result.device) onDeviceFound(result.device);
   });
@@ -31,6 +35,7 @@ export async function stopScanning() {
 
 export async function connectDevice(device) {
   await stopScanning();
+  showToast.loading("Pairing", `Connecting to ${device.name || "module"}...`);
   
   try {
     await BleClient.connect(device.deviceId, (id) => {
@@ -38,19 +43,21 @@ export async function connectDevice(device) {
       console.log("Lost connection to device:", id);
       connectedDeviceId = null;
       useGaitStore.getState().setConnectionStatus(false, null);
+      showToast.error("Connection Lost", "The sensor module went out of range or powered off.");
     });
 
     connectedDeviceId = device.deviceId;
-    console.log("Device handshake completed");
     
     // Tell the global store we are officially connected
     useGaitStore.getState().setConnectionStatus(true, device);
+    
+    showToast.success("Paired Successfully", "Live telemetry stream active.");
     
     // Start streaming immediately
     await startGaitDataStream();
 
   } catch (error) {
-    console.error("Failed to connect:", error);
+    showToast.error("Pairing Failed", "Could not establish a stable connection.");
     throw error;
   }
 }
@@ -59,11 +66,11 @@ export async function disconnectDevice() {
   if (connectedDeviceId) {
     try {
       await BleClient.disconnect(connectedDeviceId);
+      showToast.ble("Disconnected", "Hardware safely unlinked.");
     } catch (e) {
       console.error(e);
     }
     connectedDeviceId = null;
-    // Tell the global store we manually disconnected
     useGaitStore.getState().setConnectionStatus(false, null);
   }
 }
@@ -76,7 +83,6 @@ export async function startGaitDataStream() {
     SERVICE_UUID,
     CHAR_NOTIFY_UUID,
     (value) => {
-      // Use the parsing logic from the previous step here
       if(value.byteLength < 66) return; 
 
       const left = {};
