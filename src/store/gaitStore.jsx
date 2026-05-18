@@ -11,6 +11,11 @@ export const useGaitStore = create((set, get) => ({
   // --- CONNECTION STATE ---
   isConnected: false,
   connectedDevice: null,
+  scanning: false,
+  foundDevice: null,
+
+  setScanning: (status) => set({ scanning: status }),
+  setFoundDevice: (device) => set({ foundDevice: device }),
   
   setConnectionStatus: (status, device = null) => set({ 
     isConnected: status, 

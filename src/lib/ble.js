@@ -1,6 +1,7 @@
 import { BleClient } from "@capacitor-community/bluetooth-le";
 import { useGaitStore, SENSOR_KEYS } from "../store/gaitStore";
-import { showToast } from "./toastUtils"; // Import your new custom toasts
+import { showToast } from "../lib/ToastUtils"; // Import your new custom toasts
+
 
 export const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 export const CHAR_NOTIFY_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
@@ -18,13 +19,21 @@ export async function initBLE() {
 }
 
 export async function scanDevices(onDeviceFound) {
+  // Correct way to read/write Zustand state outside of React:
+  useGaitStore.getState().setScanning(true);
+
   showToast.loading("Scanning", "Looking for Gait Sensor Modules...");
   
   await BleClient.requestLEScan({ services: [SERVICE_UUID] }, (result) => {
     if (result.device) onDeviceFound(result.device);
   });
 
-  setTimeout(async () => { await stopScanning(); }, 8000);
+  setTimeout(async () => { 
+    await stopScanning(); 
+    // Safely reset state after timeout
+    useGaitStore.getState().setScanning(false);
+    useGaitStore.getState().setFoundDevice(null);
+  }, 8000);
 }
 
 export async function stopScanning() {

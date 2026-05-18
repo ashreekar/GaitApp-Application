@@ -10,11 +10,7 @@ import {
 
 export default function SettingsPage() {
   // Read persistent state from global store
-  const { isConnected, connectedDevice } = useGaitStore();
-  
-  // Local state only for scanning process
-  const [scanning, setScanning] = useState(false);
-  const [foundDevice, setFoundDevice] = useState(null); 
+  const { isConnected, connectedDevice, scanning, foundDevice, setScanning, setFoundDevice} = useGaitStore();
 
   useEffect(() => {
     initBLE();

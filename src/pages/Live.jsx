@@ -22,7 +22,7 @@ const SENSOR_IDS = [
 export default function LivePage() {
 
   // const liveData = useGaitSimulation(true);
-  const liveData = useGaitStore((state) => state.liveData);
+  const {liveData, isConnected} = useGaitStore((state) => state.liveData);
 
   const getBatteryIcon = (level) => {
     if (level > 60) {
@@ -36,10 +36,32 @@ export default function LivePage() {
     return <BatteryLow size={18} className="text-red-500" />;
   };
 
+  // ... (keep getBatteryIcon)
+
+  // 1. If not connected at all
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen bg-[#F3F4F6] flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 max-w-sm w-full">
+          <Activity size={48} className="text-slate-300 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-800 mb-2">No Sensor Linked</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            Please connect your gait analysis module in settings to view live telemetry.
+          </p>
+          {/* If you are using react-router-dom, you could wrap a button in a <Link to="/settings"> here */}
+        </div>
+      </div>
+    );
+  }
+
+  // 2. If connected, but waiting for the first burst of data
   if (!liveData.history || liveData.history.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Waiting for sensor telemetry...
+      <div className="min-h-screen bg-[#F3F4F6] flex flex-col items-center justify-center">
+        <Waves size={32} className="text-blue-500 animate-pulse mb-3" />
+        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
+          Syncing Data Stream...
+        </p>
       </div>
     );
   }
