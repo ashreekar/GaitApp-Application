@@ -22,7 +22,8 @@ const SENSOR_IDS = [
 export default function LivePage() {
 
   // const liveData = useGaitSimulation(true);
-  const {liveData, isConnected} = useGaitStore((state) => state.liveData);
+  const liveData = useGaitStore((state) => state.liveData);
+  const isConnected = useGaitStore((state) => state.isConnected);
 
   const getBatteryIcon = (level) => {
     if (level > 60) {
