@@ -19,7 +19,6 @@ const initialLiveData = {
   },
 };
 
-// Module-level variable to hold the 10-second inactivity timer
 let sessionTimeoutId = null;
 
 export const useGaitStore = create(
@@ -33,9 +32,29 @@ export const useGaitStore = create(
       latestAvgL: 0, latestAvgR: 0,
       liveData: initialLiveData, buffer: [],
 
-      // SESSION STATE
       sessionId: null,
       isSessionStarting: false,
+
+      // =====================================================
+      // NEW: EXPLICITLY END SESSION ON DISCONNECT / APP CLOSE
+      // =====================================================
+      forceEndSession: async () => {
+        const { sessionId, buffer, sendToServer } = get();
+        if (sessionId) {
+          console.log("🔴 Force ending session...");
+          if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
+          
+          if (buffer.length > 0) {
+            await sendToServer(buffer);
+          }
+          try {
+            await api.post(API.endSession, { sessionId });
+          } catch (err) {
+            console.error("Failed to end session:", err);
+          }
+          set({ sessionId: null, buffer: [] });
+        }
+      },
 
       setHydrated: () => set({ hydrated: true }),
       setConnectionState: (side, state) => set({ [`${side.toLowerCase()}Connection`]: state }),
@@ -48,43 +67,24 @@ export const useGaitStore = create(
       addReading: async (side, reading) => {
         const state = get();
 
-        // =====================================================
-        // AUTO-SESSION MANAGER
-        // =====================================================
+        // 1. Start Session
         if (!state.sessionId && !state.isSessionStarting) {
           set({ isSessionStarting: true });
           try {
             const res = await api.post(API.startSession);
             set({ sessionId: res.data.session._id, isSessionStarting: false });
-            console.log("🟢 Auto-Session Started:", res.data.session._id);
           } catch (err) {
-            console.error("Failed to auto-start session:", err);
             set({ isSessionStarting: false });
           }
         }
 
+        // 2. Inactivity Timer
         if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
-        sessionTimeoutId = setTimeout(async () => {
-          const currentSessionId = get().sessionId;
-          if (currentSessionId) {
-            console.log("⏳ 10 seconds of inactivity detected. Ending session...");
-            const currentBuffer = get().buffer;
-            if (currentBuffer.length > 0) {
-              await get().sendToServer(currentBuffer);
-            }
-            try {
-              await api.post(API.endSession, { sessionId: currentSessionId });
-              console.log("🔴 Auto-Session Ended");
-            } catch (err) {
-              console.error("Failed to end session:", err);
-            }
-            set({ sessionId: null, buffer: [] });
-          }
+        sessionTimeoutId = setTimeout(() => {
+          get().forceEndSession();
         }, 10000); 
 
-        // =====================================================
-        // DATA PROCESSING
-        // =====================================================
+        // 3. Math Calculations
         const avgL = side === "LEFT" ? reading.avg : state.latestAvgL;
         const avgR = side === "RIGHT" ? reading.avg : state.latestAvgR;
         const leftPressure = side === "LEFT" ? reading.sensors : state.liveData.leftPressure;
@@ -101,7 +101,6 @@ export const useGaitStore = create(
         const velocity = Number((cadence * 0.0075).toFixed(2));
         const phase = avgL > avgR + 100 ? "LEFT STANCE" : avgR > avgL + 100 ? "RIGHT STANCE" : "DOUBLE SUPPORT";
 
-        // 👇 ====== MISSING MATH RE-ADDED HERE ====== 👇
         const groundContactLeft = avgL > 100 ? 820 : 500;
         const groundContactRight = avgR > 100 ? 790 : 500;
         const stepLengthLeft = Number((avgL / 2000).toFixed(2));
@@ -109,7 +108,6 @@ export const useGaitStore = create(
         const strideLength = Number((stepLengthLeft + stepLengthRight).toFixed(2));
         const fallRisk = asymmetry > 25 ? "HIGH" : asymmetry > 12 ? "MODERATE" : "LOW";
         const recoveryScore = Math.max(40, Math.min(100, Math.round(symmetry)));
-        // 👆 ======================================== 👆
 
         const flatReading = { timestamp: reading.timestamp, phase, side_updated: side };
         SENSOR_KEYS.forEach((k) => {
@@ -148,15 +146,12 @@ export const useGaitStore = create(
         if (!sessionId) return;
         try {
           await api.post(API.sendFrames, { sessionId, frames: dataBatch });
-        } catch (err) {
-          console.error("Upload failed:", err);
-        }
+        } catch (err) {}
       },
     }),
     {
       name: "gait-storage-dual",
       storage: createJSONStorage(() => localStorage),
-      // Prevent sessionId and buffers from persisting if app restarts
       partialize: (state) => ({ leftDevice: state.leftDevice, rightDevice: state.rightDevice }),
       onRehydrateStorage: () => (state) => { state?.setHydrated(); },
     }

@@ -17,17 +17,21 @@ let manualDisconnect = { LEFT: false, RIGHT: false };
 export async function initBLE() {
   try {
     await BleClient.initialize({ androidNeverForLocation: true });
-    console.log("BLE initialized");
     const state = useGaitStore.getState();
 
-    // AUTO RECONNECT BOTH DEVICES
     if (state.leftDevice) connectDevice(state.leftDevice, "LEFT", true).catch(console.error);
     if (state.rightDevice) connectDevice(state.rightDevice, "RIGHT", true).catch(console.error);
 
     if (!appStateListener) {
       appStateListener = await App.addListener("appStateChange", async ({ isActive }) => {
-        if (!isActive) return;
         const current = useGaitStore.getState();
+        
+        // NEW: If app goes to background (user closed it), flush buffer and end session!
+        if (!isActive) {
+          current.forceEndSession();
+          return;
+        }
+        
         if (current.leftConnection !== "connected" && current.leftDevice && !connectedDevices.LEFT) {
           connectDevice(current.leftDevice, "LEFT", true).catch(console.error);
         }
@@ -133,6 +137,12 @@ export async function disconnectDevice(side) {
     connectedDevices[side] = null;
     store.setConnectionState(side, "idle");
     store.setConnectedDevice(side, null);
+
+    // NEW: If BOTH devices are now disconnected, stop the session!
+    const currentState = useGaitStore.getState();
+    if (currentState.leftConnection !== "connected" && currentState.rightConnection !== "connected") {
+      currentState.forceEndSession();
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Activity, Footprints, Gauge, Waves, Timer } from "lucide-react";
 import { LineChart } from "@mui/x-charts/LineChart";
@@ -25,6 +25,28 @@ export default function SessionDetails() {
     fetchSessionDetails();
   }, [id]);
 
+  // =====================================================
+  // DOWNSAMPLING LOGIC (Prevents UI Crash)
+  // =====================================================
+  const chartData = useMemo(() => {
+    if (!session || !session.frames) return { labels: [], leftHeel: [], rightHeel: [], leftToe: [], rightToe: [] };
+    
+    const rawFrames = session.frames;
+    const MAX_POINTS = 60; // Max points drawn on screen
+    const step = Math.max(1, Math.floor(rawFrames.length / MAX_POINTS));
+    
+    // Pick every Nth frame
+    const sampled = rawFrames.filter((_, index) => index % step === 0);
+
+    return {
+      labels: sampled.map((_, i) => `P${i + 1}`),
+      leftHeel: sampled.map(f => f.LH_L || 0),
+      rightHeel: sampled.map(f => f.LH_R || 0),
+      leftToe: sampled.map(f => f.T1_L || 0),
+      rightToe: sampled.map(f => f.T1_R || 0)
+    };
+  }, [session]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading session...</div>;
   if (!session) return <div className="min-h-screen flex items-center justify-center text-red-500">Session not found.</div>;
 
@@ -35,22 +57,8 @@ export default function SessionDetails() {
   const minutes = Math.floor(durationMs / 60000);
   const seconds = Math.floor((durationMs % 60000) / 1000);
 
-  /* =========================================================
-     GRAPH DATA (Mapped to Actual FSR Data)
-  ========================================================= */
-  const timeLabels = frames.map((_, i) => `F${i + 1}`);
-  
-  // Heel Pressure (LH_L vs LH_R)
-  const leftHeelData = frames.map((f) => f.LH_L || 0);
-  const rightHeelData = frames.map((f) => f.LH_R || 0);
-  
-  // Toe Pressure (T1_L vs T1_R)
-  const leftToeData = frames.map((f) => f.T1_L || 0);
-  const rightToeData = frames.map((f) => f.T1_R || 0);
-
   return (
     <div className="min-h-[100dvh] bg-[#F3F4F6] pb-32">
-      {/* HEADER */}
       <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-gray-100">
         <div className="px-4 py-4 flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center">
@@ -64,7 +72,6 @@ export default function SessionDetails() {
       </div>
 
       <div className="p-4 space-y-5">
-        {/* SUMMARY */}
         <div className="grid grid-cols-2 gap-4">
           <SummaryCard icon={<Timer size={20} />} title="Duration" value={`${minutes}m ${seconds}s`} />
           <SummaryCard icon={<Footprints size={20} />} title="Frames" value={session.frameCount || 0} />
@@ -72,24 +79,22 @@ export default function SessionDetails() {
           <SummaryCard icon={<Gauge size={20} />} title="Status" value={session.status} />
         </div>
 
-        {/* SESSION INFO */}
         <SectionCard title="Session Information">
           <InfoRow label="Started" value={start.toLocaleString()} />
           <InfoRow label="Ended" value={session.endTime ? end.toLocaleString() : "In Progress"} />
           <InfoRow label="Session ID" value={session._id} />
         </SectionCard>
 
-        {/* HEEL PRESSURE GRAPH */}
+        {/* GRAPHS RENDER USING DOWNSAMPLED DATA */}
         <GraphCard title="Heel Strike Pressure (LH)">
-          <ComparisonChart labels={timeLabels} leftData={leftHeelData} rightData={rightHeelData} />
+          <ComparisonChart labels={chartData.labels} leftData={chartData.leftHeel} rightData={chartData.rightHeel} />
         </GraphCard>
 
-        {/* TOE PRESSURE GRAPH */}
         <GraphCard title="Toe-Off Pressure (T1)">
-          <ComparisonChart labels={timeLabels} leftData={leftToeData} rightData={rightToeData} />
+          <ComparisonChart labels={chartData.labels} leftData={chartData.leftToe} rightData={chartData.rightToe} />
         </GraphCard>
 
-        {/* FRAME EXPLORER */}
+        {/* EXPLORER KEEPS ALL RAW DATA */}
         <FrameSearchCard frames={frames} />
       </div>
     </div>
@@ -100,7 +105,7 @@ export default function SessionDetails() {
    COMPARISON CHART (Left vs Right)
 ========================================================= */
 function ComparisonChart({ labels, leftData, rightData }) {
-  if (!labels.length) return <div className="h-[260px] flex items-center justify-center text-gray-400 text-sm">No frame data available</div>;
+  if (!labels || labels.length === 0) return <div className="h-[260px] flex items-center justify-center text-gray-400 text-sm">No frame data available</div>;
   
   return (
     <LineChart
@@ -117,9 +122,7 @@ function ComparisonChart({ labels, leftData, rightData }) {
   );
 }
 
-/* =========================================================
-   COMPONENTS
-========================================================= */
+// ... Keep your existing SummaryCard, SectionCard, GraphCard, InfoRow, MiniStat, FrameSearchCard unchanged ...
 function SummaryCard({ icon, title, value }) {
   return (
     <div className="bg-white rounded-3xl p-4 shadow-sm">
@@ -170,7 +173,6 @@ function MiniStat({ label, value }) {
 
 function FrameSearchCard({ frames }) {
   const [query, setQuery] = useState("");
-  // Simple search by frame index (1-based)
   const filteredFrames = frames.map((f, i) => ({ ...f, index: i + 1 })).filter(f => f.index.toString().includes(query));
 
   return (
