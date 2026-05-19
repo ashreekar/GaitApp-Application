@@ -1,16 +1,31 @@
-# React + Vite
+# GaitApp - Dual Sensor Gait Analysis System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack application connecting to dual ESP32 Bluetooth Low Energy (BLE) smart insoles to provide real-time biomechanical analysis, session recording, and historical telemetry viewing.
 
-Currently, two official plugins are available:
+### 1. GitHub Repositories
+* **Frontend:** [GaitApp-Application](https://github.com/ashreekar/GaitApp-Application)
+* **Backend:** [GaitApp-Backend](https://github.com/ashreekar?tab=repositories) (Ensure you link the exact backend repo here)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 2. Frameworks Used
+* **Frontend:** React.js, Vite, Tailwind CSS, Zustand (State Management), MUI Charts.
+* **Mobile Wrappers:** Capacitor (for native BLE access and mobile builds).
+* **Backend:** Node.js, Express.js.
+* **Database:** MongoDB (via Mongoose).
+* **Hardware:** ESP32 Arduino Core.
 
-## React Compiler
+### 3. Required Software Versions
+* **Node.js:** v18.0.0 or higher
+* **npm:** v9.0.0 or higher
+* **MongoDB:** v6.0 or higher (or MongoDB Atlas)
+* **Android Studio:** Latest version (Required for Capacitor Android builds)
+* **Arduino IDE:** v2.x (For flashing ESP32 firmware)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 4. .env.example
+Create a `.env` file in both the frontend and backend root directories based on these examples:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+**Backend (`.env`)**
+```env
+PORT=5000
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/gaitdb?retryWrites=true&w=majority
+JWT_SECRET=your_super_secret_jwt_key_here
+NODE_ENV=development
