@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useGaitStore } from "../store/gaitStore";
 
 import RecoverySection from "../components/home/RecoverySection";
@@ -13,44 +13,53 @@ import SymmetryProgressCard from "../components/home/SymmentryProgressCard";
 import GaitCycleCard from "../components/home/GaitCycleDistributionCard";
 
 export default function Home() {
-  const analytics = useGaitStore((s) => s.liveData.analytics);
+  // 1. Local state to prevent infinite re-renders
+  const [analytics, setAnalytics] = useState(() => useGaitStore.getState().liveData.analytics);
+
+  // 2. Safely pull new data every 1.5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnalytics(useGaitStore.getState().liveData.analytics);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
 
   // =====================================================
-  // DYNAMIC HOME DATA (Memoized to prevent child re-renders)
+  // DYNAMIC HOME DATA
   // =====================================================
   const homeData = useMemo(() => ({
     recovery: {
-      score: analytics.recoveryScore,
+      score: analytics.recoveryScore || 0,
       trend: 12,
       target: 85,
     },
     telemetry: {
-      symmetry: Math.round(analytics.symmetry),
-      velocity: analytics.velocity,
-      asymmetry: Math.round(analytics.asymmetry),
-      fallRisk: analytics.fallRisk,
+      symmetry: Math.round(analytics.symmetry || 0),
+      velocity: analytics.velocity || 0,
+      asymmetry: Math.round(analytics.asymmetry || 0),
+      fallRisk: analytics.fallRisk || "LOW",
     },
     gaitIndex: {
-      pronationLeft: Math.round(analytics.pronationLeft),
-      pronationRight: Math.round(analytics.pronationRight),
-      pronationIndex: Math.round(analytics.pronationIndex),
+      pronationLeft: Math.round(analytics.pronationLeft || 0),
+      pronationRight: Math.round(analytics.pronationRight || 0),
+      pronationIndex: Math.round(analytics.pronationIndex || 0),
     },
     groundContact: {
-      left: analytics.groundContactLeft,
-      right: analytics.groundContactRight,
+      left: analytics.groundContactLeft || 0,
+      right: analytics.groundContactRight || 0,
       unit: "ms",
     },
     stepMetrics: {
-      steps: analytics.steps,
+      steps: analytics.steps || 0,
       goal: 8000,
     },
     lengthMetrics: {
-      stepLeft: analytics.stepLengthLeft,
-      stepRight: analytics.stepLengthRight,
+      stepLeft: analytics.stepLengthLeft || 0,
+      stepRight: analytics.stepLengthRight || 0,
       target: 0.5,
-      stride: analytics.strideLength,
+      stride: analytics.strideLength || 0,
       strideTarget: 1.2,
-      cadence: analytics.cadence,
+      cadence: analytics.cadence || 0,
     },
     physio: [
       { id: 1, name: "Heel Raises", sets: 3, target: "12 reps", completed: true, icon: "🦶" },
@@ -59,21 +68,18 @@ export default function Home() {
     ],
   }), [analytics]);
 
-  const weeklyProgress = []; // Temporarily empty since history usage was commented out
+  const weeklyProgress = []; 
 
-  // =====================================================
-  // GAIT CYCLE
-  // =====================================================
   const gaitCycleData = useMemo(() => ([
     {
       name: "Left",
-      stance: analytics.symmetry,
-      swing: 100 - analytics.symmetry,
+      stance: analytics.symmetry || 0,
+      swing: 100 - (analytics.symmetry || 0),
     },
     {
       name: "Right",
-      stance: 100 - analytics.asymmetry,
-      swing: analytics.asymmetry,
+      stance: 100 - (analytics.asymmetry || 0),
+      swing: analytics.asymmetry || 0,
     },
   ]), [analytics]);
 
