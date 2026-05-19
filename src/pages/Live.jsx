@@ -23,7 +23,16 @@ export default function LivePage() {
 
   // const liveData = useGaitSimulation(true);
   const liveData = useGaitStore((state) => state.liveData);
-  const isConnected = useGaitStore((state) => state.isConnected);
+  const hydrated =
+  useGaitStore((s) => s.hydrated);
+
+const isConnected =
+  useGaitStore(
+    (s) =>
+      s.connectionState === "connected"
+  );
+
+if (!hydrated) return null;
 
   const getBatteryIcon = (level) => {
     if (level > 60) {
@@ -51,18 +60,6 @@ export default function LivePage() {
           </p>
           {/* If you are using react-router-dom, you could wrap a button in a <Link to="/settings"> here */}
         </div>
-      </div>
-    );
-  }
-
-  // 2. If connected, but waiting for the first burst of data
-  if (!liveData.history || liveData.history.length === 0) {
-    return (
-      <div className="min-h-screen bg-[#F3F4F6] flex flex-col items-center justify-center">
-        <Waves size={32} className="text-blue-500 animate-pulse mb-3" />
-        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-          Syncing Data Stream...
-        </p>
       </div>
     );
   }
@@ -345,7 +342,7 @@ function SensorChart({
   const xLabels = history.map((d) => d.displayTime);
 
   const series = keys.map((key, index) => ({
-    data: history.map((d) => d[key]),
+    data: history.map((d) => d[key] ?? 0),
 
     label: key,
 

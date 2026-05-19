@@ -1,13 +1,15 @@
-import { BleClient } from "@capacitor-community/bluetooth-le";
+import {
+  BleClient,
+} from "@capacitor-community/bluetooth-le";
 
-import { App } from "@capacitor/app";
+import {
+  App,
+} from "@capacitor/app";
 
 import {
   useGaitStore,
   SENSOR_KEYS,
 } from "../store/gaitStore";
-
-import { showToast } from "../lib/ToastUtils";
 
 export const SERVICE_UUID =
   "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
@@ -15,15 +17,19 @@ export const SERVICE_UUID =
 export const CHAR_NOTIFY_UUID =
   "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
-const EXPECTED_PACKET_SIZE = 66;
+const EXPECTED_PACKET_SIZE =
+  66;
 
-let connectedDeviceId = null;
+let connectedDeviceId =
+  null;
 
-let appStateListener = null;
+let appStateListener =
+  null;
 
 let connecting = false;
 
-let manualDisconnect = false;
+let manualDisconnect =
+  false;
 
 // =====================================================
 // INIT
@@ -34,20 +40,22 @@ export async function initBLE() {
   try {
 
     await BleClient.initialize({
-      androidNeverForLocation: true,
+      androidNeverForLocation:
+        true,
     });
 
-    console.log("BLE initialized");
+    console.log(
+      "BLE initialized"
+    );
 
-    const state = useGaitStore.getState();
+    const state =
+      useGaitStore.getState();
 
-    // Auto reconnect
+    // AUTO RECONNECT
 
-    if (state.connectedDevice) {
-
-      console.log(
-        "Attempting auto reconnect..."
-      );
+    if (
+      state.connectedDevice
+    ) {
 
       try {
 
@@ -65,29 +73,30 @@ export async function initBLE() {
       }
     }
 
-    // App resume reconnect
+    // APP RESUME
 
     if (!appStateListener) {
 
       appStateListener =
         await App.addListener(
           "appStateChange",
-          async ({ isActive }) => {
 
-            if (!isActive) return;
+          async ({
+            isActive,
+          }) => {
+
+            if (!isActive)
+              return;
 
             const current =
               useGaitStore.getState();
 
             if (
-              current.connectionState !== "connected" &&
+              current.connectionState !==
+                "connected" &&
               current.connectedDevice &&
               !connectedDeviceId
             ) {
-
-              console.log(
-                "App resumed, reconnecting..."
-              );
 
               try {
 
@@ -98,7 +107,9 @@ export async function initBLE() {
 
               } catch (err) {
 
-                console.error(err);
+                console.error(
+                  err
+                );
               }
             }
           }
@@ -107,11 +118,9 @@ export async function initBLE() {
 
   } catch (err) {
 
-    console.error("BLE init failed", err);
-
-    showToast.error(
-      "Bluetooth Error",
-      "Please enable Bluetooth."
+    console.error(
+      "BLE init failed",
+      err
     );
   }
 }
@@ -120,74 +129,88 @@ export async function initBLE() {
 // SCAN
 // =====================================================
 
-export async function scanDevices(onDeviceFound) {
-  const store = useGaitStore.getState();
+export async function scanDevices() {
 
-  store.setScanning(true);
-  store.setFoundDevice(null);
+  const store =
+    useGaitStore.getState();
 
-  let deviceFound = false;
-
-  showToast.loading(
-    "Scanning",
-    "Looking for Gait Sensor Modules..."
+  store.setScanning(
+    true
   );
 
+  store.setConnectionState(
+    "scanning"
+  );
+
+  store.setFoundDevice(
+    null
+  );
+
+  let deviceFound =
+    false;
+
   try {
+
     await BleClient.requestLEScan(
       {
-        services: [SERVICE_UUID],
+        services: [
+          SERVICE_UUID,
+        ],
       },
+
       async (result) => {
-        if (!result.device || deviceFound) return;
+
+        if (
+          !result.device ||
+          deviceFound
+        ) {
+
+          return;
+        }
 
         deviceFound = true;
 
-        console.log("BLE Device Found:", result.device);
+        console.log(
+          "BLE Device Found:",
+          result.device
+        );
 
-        // Stop scan immediately once found
         await stopScanning();
 
-        store.setFoundDevice(result.device);
-        store.setScanning(false);
-
-        onDeviceFound?.(result.device);
-
-        showToast.success(
-          "Device Found",
-          result.device.name || "Gait module detected"
+        store.setFoundDevice(
+          result.device
         );
       }
     );
 
-    // AUTO STOP AFTER 8 SECONDS
-    setTimeout(async () => {
-      if (!deviceFound) {
-        console.log("No BLE devices found");
+    // AUTO STOP
 
-        await stopScanning();
+    setTimeout(
+      async () => {
 
-        store.setScanning(false);
-        store.setFoundDevice(null);
+        if (
+          !deviceFound
+        ) {
 
-        showToast.error(
-          "No Devices Found",
-          "Could not detect any gait sensor modules."
-        );
-      }
-    }, 8000);
+          await stopScanning();
+
+          store.setFoundDevice(
+            null
+          );
+        }
+      },
+
+      8000
+    );
 
   } catch (err) {
-    console.error("BLE Scan Error:", err);
+
+    console.error(
+      "Scan failed:",
+      err
+    );
 
     await stopScanning();
-
-    store.setScanning(false);
-
-    showToast.error(
-      "Scan Failed",
-      "Bluetooth scan could not start."
-    );
   }
 }
 
@@ -199,39 +222,20 @@ export async function stopScanning() {
 
   } catch (e) {}
 
-  const store = useGaitStore.getState();
+  const store =
+    useGaitStore.getState();
 
-  store.setScanning(false);
+  store.setScanning(
+    false
+  );
 
   if (
-    store.connectionState === "scanning"
+    store.connectionState ===
+    "scanning"
   ) {
 
-    store.setConnectionState("idle");
-  }
-}
-
-// =====================================================
-// CLEANUP
-// =====================================================
-
-async function cleanupBleConnection() {
-
-  if (!connectedDeviceId) return;
-
-  try {
-
-    await BleClient.stopNotifications(
-      connectedDeviceId,
-      SERVICE_UUID,
-      CHAR_NOTIFY_UUID
-    );
-
-  } catch (e) {
-
-    console.warn(
-      "Notification cleanup failed",
-      e
+    store.setConnectionState(
+      "idle"
     );
   }
 }
@@ -245,11 +249,13 @@ export async function connectDevice(
   isAuto = false
 ) {
 
-  if (connecting) return;
+  if (connecting)
+    return;
 
   connecting = true;
 
-  const store = useGaitStore.getState();
+  const store =
+    useGaitStore.getState();
 
   try {
 
@@ -261,64 +267,55 @@ export async function connectDevice(
         : "connecting"
     );
 
-    if (!isAuto) {
-
-      showToast.loading(
-        "Pairing",
-        `Connecting to ${device.name || "sensor"}`
-      );
-    }
-
     await BleClient.connect(
       device.deviceId,
 
       async (id) => {
 
         console.log(
-          "Unexpected disconnect:",
+          "Disconnected:",
           id
         );
 
-        connectedDeviceId = null;
+        connectedDeviceId =
+          null;
 
-        await cleanupBleConnection();
+        if (
+          manualDisconnect
+        ) {
 
-        if (manualDisconnect) {
-
-          manualDisconnect = false;
+          manualDisconnect =
+            false;
 
           return;
         }
 
-        store.setConnectionState("idle");
-
-        showToast.error(
-          "Connection Lost",
-          "Sensor disconnected unexpectedly."
+        store.setConnectionState(
+          "idle"
         );
       }
     );
 
-    connectedDeviceId = device.deviceId;
+    connectedDeviceId =
+      device.deviceId;
 
-    store.setConnectedDevice(device);
+    store.setConnectedDevice(
+      device
+    );
 
-    store.setConnectionState("connected");
+    store.setConnectionState(
+      "connected"
+    );
 
-    if (!isAuto) {
+    // WAIT BEFORE NOTIFICATIONS
 
-      showToast.success(
-        "Connected",
-        "Live telemetry active"
-      );
-
-    } else {
-
-      showToast.success(
-        "Reconnected",
-        "Sensor stream restored"
-      );
-    }
+    await new Promise(
+      (r) =>
+        setTimeout(
+          r,
+          500
+        )
+    );
 
     await startGaitDataStream();
 
@@ -329,11 +326,8 @@ export async function connectDevice(
       err
     );
 
-    store.setConnectionState("idle");
-
-    showToast.error(
-      "Connection Failed",
-      "Unable to connect to sensor"
+    store.setConnectionState(
+      "idle"
     );
 
     throw err;
@@ -350,11 +344,18 @@ export async function connectDevice(
 
 export async function disconnectDevice() {
 
-  if (!connectedDeviceId) return;
+  if (
+    !connectedDeviceId
+  ) {
 
-  manualDisconnect = true;
+    return;
+  }
 
-  const store = useGaitStore.getState();
+  manualDisconnect =
+    true;
+
+  const store =
+    useGaitStore.getState();
 
   store.setConnectionState(
     "disconnecting"
@@ -362,15 +363,14 @@ export async function disconnectDevice() {
 
   try {
 
-    await cleanupBleConnection();
+    await BleClient.stopNotifications(
+      connectedDeviceId,
+      SERVICE_UUID,
+      CHAR_NOTIFY_UUID
+    );
 
     await BleClient.disconnect(
       connectedDeviceId
-    );
-
-    showToast.success(
-      "Disconnected",
-      "Sensor safely disconnected"
     );
 
   } catch (err) {
@@ -382,11 +382,16 @@ export async function disconnectDevice() {
 
   } finally {
 
-    connectedDeviceId = null;
+    connectedDeviceId =
+      null;
 
-    store.setConnectionState("idle");
+    store.setConnectionState(
+      "idle"
+    );
 
-    store.setConnectedDevice(null);
+    store.setConnectedDevice(
+      null
+    );
 
     store.resetLiveData();
   }
@@ -398,9 +403,15 @@ export async function disconnectDevice() {
 
 export async function startGaitDataStream() {
 
-  if (!connectedDeviceId) return;
+  if (
+    !connectedDeviceId
+  ) {
+
+    return;
+  }
 
   await BleClient.startNotifications(
+
     connectedDeviceId,
 
     SERVICE_UUID,
@@ -409,41 +420,73 @@ export async function startGaitDataStream() {
 
     (value) => {
 
+      // SAFETY
+
+      const data =
+        value instanceof DataView
+          ? value
+          : new DataView(
+              value.buffer
+            );
+
+      console.log(
+        "BLE packet received:",
+        data.byteLength
+      );
+
       if (
-        value.byteLength !==
+        data.byteLength !==
         EXPECTED_PACKET_SIZE
       ) {
 
         console.warn(
           "Invalid packet size:",
-          value.byteLength
+          data.byteLength
         );
 
         return;
       }
 
-      const left = {};
+      const left =
+        {};
 
-      const right = {};
+      const right =
+        {};
 
       let avgL = 0;
 
       let avgR = 0;
 
-      for (let i = 0; i < 16; i++) {
+      // =====================================================
+      // PARSE 16 LEFT + 16 RIGHT
+      // =====================================================
+
+      for (
+        let i = 0;
+        i <
+        SENSOR_KEYS.length;
+        i++
+      ) {
 
         const lVal =
-          value.getUint16(i * 2, true);
+          data.getUint16(
+            i * 2,
+            true
+          );
 
         const rVal =
-          value.getUint16(
+          data.getUint16(
             32 + i * 2,
             true
           );
 
-        left[SENSOR_KEYS[i]] = lVal;
+        left[
+          SENSOR_KEYS[i]
+        ] = lVal;
 
-        right[SENSOR_KEYS[i]] = rVal;
+        right[
+          SENSOR_KEYS[i]
+        ] = rVal;
 
         avgL += lVal;
 
@@ -454,24 +497,45 @@ export async function startGaitDataStream() {
 
       avgR /= 16;
 
+      // =====================================================
+      // PHASE
+      // =====================================================
+
       const phase =
-        avgL > avgR + 100
+        avgL >
+        avgR + 100
+
           ? "LEFT STANCE"
-          : avgR > avgL + 100
+
+          : avgR >
+            avgL + 100
+
           ? "RIGHT STANCE"
+
           : "DOUBLE SUPPORT";
+
+      // =====================================================
+      // READING
+      // =====================================================
 
       const reading = {
 
-        timestamp: Date.now(),
+        timestamp:
+          Date.now(),
 
         left,
 
         right,
 
         battery: {
-          L: value.getUint8(64),
-          R: value.getUint8(65),
+
+          L: data.getUint8(
+            64
+          ),
+
+          R: data.getUint8(
+            65
+          ),
         },
 
         phase,
@@ -481,20 +545,42 @@ export async function startGaitDataStream() {
         AVG_R: avgR,
       };
 
-      for (let i = 0; i < 16; i++) {
+      // =====================================================
+      // FLATTEN FOR CHARTS
+      // =====================================================
+
+      for (
+        let i = 0;
+        i <
+        SENSOR_KEYS.length;
+        i++
+      ) {
 
         reading[
           `${SENSOR_KEYS[i]}_L`
-        ] = left[SENSOR_KEYS[i]];
+        ] =
+          left[
+            SENSOR_KEYS[i]
+          ];
 
         reading[
           `${SENSOR_KEYS[i]}_R`
-        ] = right[SENSOR_KEYS[i]];
+        ] =
+          right[
+            SENSOR_KEYS[i]
+          ];
       }
+
+      console.log(
+        "Parsed reading:",
+        reading
+      );
 
       useGaitStore
         .getState()
-        .addReading(reading);
+        .addReading(
+          reading
+        );
     }
   );
 }
