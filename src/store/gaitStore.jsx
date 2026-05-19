@@ -4,16 +4,12 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export const SENSOR_KEYS = [
   "T1", "T2", "T3", "T4", "T5",
   "M1", "M2", "M3", "M4", "M5",
-  "MM", "CM", "LM",
-  "MH", "CH", "LH",
+  "MM", "CM", "LM", "MH", "CH", "LH",
 ];
 
 const initialLiveData = {
-  leftPressure: {},
-  rightPressure: {},
-  battery: { L: 100, R: 100 },
-  phase: "STANCE",
-  history: [],
+  leftPressure: {}, rightPressure: {}, battery: { L: 100, R: 100 },
+  phase: "STANCE", history: [],
   analytics: {
     symmetry: 0, asymmetry: 0, velocity: 0, cadence: 0,
     pronationLeft: 0, pronationRight: 0, pronationIndex: 0,
@@ -23,50 +19,52 @@ const initialLiveData = {
   },
 };
 
-// Controls how often React gets told to re-render (e.g., 250ms = 4 times per second)
-let lastUiUpdateTime = 0;
-const UI_UPDATE_INTERVAL = 250;
-
 export const useGaitStore = create(
   persist(
     (set, get) => ({
       hydrated: false,
-      connectionState: "idle",
-      connectedDevice: null,
-      scanning: false,
-      foundDevice: null,
-      liveData: initialLiveData,
-      buffer: [],
+      
+      // Dual Device Connection States
+      leftDevice: null, rightDevice: null,
+      leftConnection: "idle", rightConnection: "idle",
+      foundLeftDevice: null, foundRightDevice: null,
+      
+      // Data State
+      latestAvgL: 0, latestAvgR: 0,
+      liveData: initialLiveData, buffer: [],
 
       // =====================================================
       // STATE SETTERS
       // =====================================================
       setHydrated: () => set({ hydrated: true }),
-      setConnectionState: (state) => set({ connectionState: state }),
-      setScanning: (status) => set({ scanning: status }),
-      setFoundDevice: (device) => set({ foundDevice: device }),
-      setConnectedDevice: (device) => set({
-        connectedDevice: device ? { deviceId: device.deviceId, name: device.name || "Gait Sensor" } : null,
+      setConnectionState: (side, state) => set({ [`${side.toLowerCase()}Connection`]: state }),
+      setFoundDevice: (side, device) => set({ [`found${side.charAt(0) + side.slice(1).toLowerCase()}Device`]: device }),
+      setConnectedDevice: (side, device) => set({
+        [`${side.toLowerCase()}Device`]: device ? { deviceId: device.deviceId, name: device.name || `${side} Sensor` } : null,
       }),
-      resetLiveData: () => set({ liveData: initialLiveData, buffer: [] }),
+      resetLiveData: () => set({ liveData: initialLiveData, buffer: [], latestAvgL: 0, latestAvgR: 0 }),
 
       // =====================================================
-      // DATA PROCESSING (THROTTLED)
+      // DATA MERGING & PROCESSING
       // =====================================================
-      addReading: (reading) => {
+      addReading: (side, reading) => {
         const state = get();
-        const avgL = reading.AVG_L;
-        const avgR = reading.AVG_R;
-        const now = Date.now();
-        const shouldUpdateUi = now - lastUiUpdateTime > UI_UPDATE_INTERVAL;
+        
+        // Update the latest known averages and pressures for the incoming side
+        const avgL = side === "LEFT" ? reading.avg : state.latestAvgL;
+        const avgR = side === "RIGHT" ? reading.avg : state.latestAvgR;
+        const leftPressure = side === "LEFT" ? reading.sensors : state.liveData.leftPressure;
+        const rightPressure = side === "RIGHT" ? reading.sensors : state.liveData.rightPressure;
+        const batteryL = side === "LEFT" ? reading.battery : state.liveData.battery.L;
+        const batteryR = side === "RIGHT" ? reading.battery : state.liveData.battery.R;
 
-        // Calculations (done every packet for accuracy)
         const symmetry = Math.max(0, 100 - Math.abs(avgL - avgR) / 10);
         const asymmetry = Math.abs(avgL - avgR) / 10;
-        const pronationLeft = ((reading.left.M1 || 0) + (reading.left.M2 || 0)) / 2;
-        const pronationRight = ((reading.right.M1 || 0) + (reading.right.M2 || 0)) / 2;
+        const pronationLeft = ((leftPressure.M1 || 0) + (leftPressure.M2 || 0)) / 2;
+        const pronationRight = ((rightPressure.M1 || 0) + (rightPressure.M2 || 0)) / 2;
         const pronationIndex = Math.abs(pronationLeft - pronationRight) / 50;
-        const cadence = 90 + Math.round(avgL / 50);
+        
+        const cadence = 90 + Math.round((avgL + avgR) / 100);
         const velocity = Number((cadence * 0.0075).toFixed(2));
         const groundContactLeft = avgL > 100 ? 820 : 500;
         const groundContactRight = avgR > 100 ? 790 : 500;
@@ -76,60 +74,47 @@ export const useGaitStore = create(
         const fallRisk = asymmetry > 25 ? "HIGH" : asymmetry > 12 ? "MODERATE" : "LOW";
         const recoveryScore = Math.max(40, Math.min(100, Math.round(symmetry)));
 
-        // Always push to the raw buffer for the backend
-        const newBuffer = [...state.buffer, reading];
-        const stateUpdates = { buffer: newBuffer };
+        const phase = avgL > avgR + 100 ? "LEFT STANCE" : avgR > avgL + 100 ? "RIGHT STANCE" : "DOUBLE SUPPORT";
 
-        // Only update UI variables at the throttled rate
-        if (shouldUpdateUi) {
-          lastUiUpdateTime = now;
+        // Flatten data for buffer upload
+        const flatReading = { timestamp: reading.timestamp, phase, side_updated: side };
+        SENSOR_KEYS.forEach((k) => {
+          flatReading[`${k}_L`] = leftPressure[k] || 0;
+          flatReading[`${k}_R`] = rightPressure[k] || 0;
+        });
 
-          const newHistory = [
-            ...state.liveData.history,
-            { ...reading, displayTime: new Date(reading.timestamp).toLocaleTimeString() },
-          ].slice(-50);
+        const newBuffer = [...state.buffer, flatReading];
 
-          stateUpdates.liveData = {
-            leftPressure: reading.left,
-            rightPressure: reading.right,
-            battery: reading.battery,
-            phase: reading.phase,
-            history: newHistory,
+        set({
+          latestAvgL: avgL, latestAvgR: avgR,
+          liveData: {
+            leftPressure, rightPressure, phase,
+            battery: { L: batteryL, R: batteryR },
+            history: state.liveData.history, // Removed history array buildup for performance
             analytics: {
-              symmetry, asymmetry, velocity, cadence,
-              pronationLeft, pronationRight, pronationIndex,
-              groundContactLeft, groundContactRight,
-              stepLengthLeft, stepLengthRight, strideLength,
-              fallRisk, recoveryScore,
-              steps: state.liveData.analytics.steps + 1,
+              symmetry, asymmetry, velocity, cadence, pronationLeft, pronationRight, pronationIndex,
+              groundContactLeft, groundContactRight, stepLengthLeft, stepLengthRight, strideLength,
+              fallRisk, recoveryScore, steps: state.liveData.analytics.steps + (side === "LEFT" && avgL > 150 ? 1 : 0),
             },
-          };
-        }
+          },
+          buffer: newBuffer,
+        });
 
-        set(stateUpdates);
-
-        // =====================================================
-        // SERVER UPLOAD
-        // =====================================================
-        if (newBuffer.length >= 8) {
+        if (newBuffer.length >= 10) {
           get().sendToServer(newBuffer);
           set({ buffer: [] });
         }
       },
 
       sendToServer: async (dataBatch) => {
-        try {
-          console.log(`📡 Uploading ${dataBatch.length} frames`);
-          // API CALL
-        } catch (err) {
-          console.error("Upload failed:", err);
-        }
+        try { console.log(`📡 Uploading ${dataBatch.length} dual-frames`); } 
+        catch (err) { console.error("Upload failed:", err); }
       },
     }),
     {
-      name: "gait-storage",
+      name: "gait-storage-dual",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ connectedDevice: state.connectedDevice }),
+      partialize: (state) => ({ leftDevice: state.leftDevice, rightDevice: state.rightDevice }),
       onRehydrateStorage: () => (state) => { state?.setHydrated(); },
     }
   )
