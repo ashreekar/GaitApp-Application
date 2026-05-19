@@ -67,69 +67,77 @@ export const useGaitStore = create(
       addReading: async (side, reading) => {
         const state = get();
 
-        // 1. Start Session
+        // 1. Start Session (Keep your existing session logic)
         if (!state.sessionId && !state.isSessionStarting) {
           set({ isSessionStarting: true });
           try {
             const res = await api.post(API.startSession);
             set({ sessionId: res.data.session._id, isSessionStarting: false });
-          } catch (err) {
-            set({ isSessionStarting: false });
-          }
+          } catch (err) { set({ isSessionStarting: false }); }
         }
 
         // 2. Inactivity Timer
         if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
-        sessionTimeoutId = setTimeout(() => {
-          get().forceEndSession();
-        }, 10000); 
+        sessionTimeoutId = setTimeout(() => { get().forceEndSession(); }, 10000); 
 
         // 3. Math Calculations
         const avgL = side === "LEFT" ? reading.avg : state.latestAvgL;
         const avgR = side === "RIGHT" ? reading.avg : state.latestAvgR;
         const leftPressure = side === "LEFT" ? reading.sensors : state.liveData.leftPressure;
         const rightPressure = side === "RIGHT" ? reading.sensors : state.liveData.rightPressure;
-        const batteryL = side === "LEFT" ? reading.battery : state.liveData.battery.L;
-        const batteryR = side === "RIGHT" ? reading.battery : state.liveData.battery.R;
 
+        // BIOMECHANIC CALCULATIONS
         const symmetry = Math.max(0, 100 - Math.abs(avgL - avgR) / 10);
         const asymmetry = Math.abs(avgL - avgR) / 10;
         const pronationLeft = ((leftPressure.M1 || 0) + (leftPressure.M2 || 0)) / 2;
         const pronationRight = ((rightPressure.M1 || 0) + (rightPressure.M2 || 0)) / 2;
         const pronationIndex = Math.abs(pronationLeft - pronationRight) / 50;
-        const cadence = 90 + Math.round((avgL + avgR) / 100);
+        
+        // Use the cadence provided by the STM32 (or fallback to calculated)
+        const cadence = reading.cadence > 0 ? reading.cadence : 90 + Math.round((avgL + avgR) / 100);
         const velocity = Number((cadence * 0.0075).toFixed(2));
-        const phase = avgL > avgR + 100 ? "LEFT STANCE" : avgR > avgL + 100 ? "RIGHT STANCE" : "DOUBLE SUPPORT";
-
-        const groundContactLeft = avgL > 100 ? 820 : 500;
-        const groundContactRight = avgR > 100 ? 790 : 500;
-        const stepLengthLeft = Number((avgL / 2000).toFixed(2));
-        const stepLengthRight = Number((avgR / 2000).toFixed(2));
-        const strideLength = Number((stepLengthLeft + stepLengthRight).toFixed(2));
         const fallRisk = asymmetry > 25 ? "HIGH" : asymmetry > 12 ? "MODERATE" : "LOW";
         const recoveryScore = Math.max(40, Math.min(100, Math.round(symmetry)));
 
-        const flatReading = { timestamp: reading.timestamp, phase, side_updated: side };
+        // 4. Flat Reading for Database (Includes IMU telemetry)
+        const flatReading = { 
+          timestamp: reading.timestamp, 
+          phase: avgL > avgR + 100 ? "LEFT STANCE" : "RIGHT STANCE", 
+          side_updated: side,
+          accel: reading.accel,
+          pitch: reading.pitch,
+          roll: reading.roll,
+          steps: reading.steps,
+          cadence: reading.cadence,
+          fsrRaw: reading.fsr_raw,
+          activity: reading.activity
+        };
+        
         SENSOR_KEYS.forEach((k) => {
-          flatReading[`${k}_L`] = leftPressure[k] || 0;
-          flatReading[`${k}_R`] = rightPressure[k] || 0;
+          flatReading[`${k}_L`] = side === "LEFT" ? reading.sensors[k] : state.liveData.leftPressure[k] || 0;
+          flatReading[`${k}_R`] = side === "RIGHT" ? reading.sensors[k] : state.liveData.rightPressure[k] || 0;
         });
 
-        const newBuffer = [...get().buffer, flatReading];
+        const newBuffer = [...state.buffer, flatReading];
 
+        // 5. Update Zustand State
         set({
           latestAvgL: avgL, latestAvgR: avgR,
           liveData: {
-            leftPressure, rightPressure, phase,
-            battery: { L: batteryL, R: batteryR },
+            leftPressure, rightPressure, 
+            phase: flatReading.phase,
+            battery: { L: side === "LEFT" ? reading.battery : state.liveData.battery.L, R: side === "RIGHT" ? reading.battery : state.liveData.battery.R },
             history: state.liveData.history,
             analytics: {
               symmetry, asymmetry, velocity, cadence, 
               pronationLeft, pronationRight, pronationIndex,
-              groundContactLeft, groundContactRight, 
-              stepLengthLeft, stepLengthRight, strideLength,
+              groundContactLeft: avgL > 100 ? 820 : 500,
+              groundContactRight: avgR > 100 ? 790 : 500,
+              stepLengthLeft: Number((avgL / 2000).toFixed(2)),
+              stepLengthRight: Number((avgR / 2000).toFixed(2)),
+              strideLength: Number(((avgL + avgR) / 2000).toFixed(2)),
               fallRisk, recoveryScore,
-              steps: state.liveData.analytics.steps + (side === "LEFT" && avgL > 150 ? 1 : 0),
+              steps: reading.steps // Use STM32 hardware step count
             },
           },
           buffer: newBuffer,

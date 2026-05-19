@@ -4,7 +4,7 @@ import { useGaitStore, SENSOR_KEYS } from "../store/gaitStore";
 
 export const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 export const CHAR_NOTIFY_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-const EXPECTED_PACKET_SIZE = 33; // 16 sensors (32 bytes) + 1 battery (1 byte)
+const EXPECTED_PACKET_SIZE = 64; // 16 sensors (32 bytes) + 1 battery (1 byte)
 
 let connectedDevices = { LEFT: null, RIGHT: null };
 let appStateListener = null;
@@ -152,28 +152,25 @@ export async function disconnectDevice(side) {
 export async function startGaitDataStream(deviceId, side) {
   await BleClient.startNotifications(deviceId, SERVICE_UUID, CHAR_NOTIFY_UUID, (value) => {
     const data = value instanceof DataView ? value : new DataView(value.buffer);
-    
-    if (data.byteLength !== EXPECTED_PACKET_SIZE) {
-      console.warn(`Invalid ${side} packet size:`, data.byteLength);
-      return;
-    }
+    if (data.byteLength !== EXPECTED_PACKET_SIZE) return;
 
     const sensors = {};
-    let avg = 0;
-
     for (let i = 0; i < SENSOR_KEYS.length; i++) {
-      const val = data.getUint16(i * 2, true);
-      sensors[SENSOR_KEYS[i]] = val;
-      avg += val;
+      sensors[SENSOR_KEYS[i]] = data.getUint16(i * 2, true);
     }
-    avg /= 16;
-    const battery = data.getUint8(32);
 
     useGaitStore.getState().addReading(side, {
       timestamp: Date.now(),
       sensors,
-      battery,
-      avg,
+      accel: { x: data.getInt16(32, true), y: data.getInt16(34, true), z: data.getInt16(36, true) },
+      pitch: data.getFloat32(38, true),
+      roll: data.getFloat32(42, true),
+      steps: data.getUint16(46, true),
+      cadence: data.getUint16(48, true),
+      fsr_raw: data.getUint16(50, true),
+      activity: ["stationary", "walking", "running"][data.getUint8(52)],
+      battery: data.getUint8(53),
+      avg: Object.values(sensors).reduce((a, b) => a + b, 0) / 16
     });
   });
 }
