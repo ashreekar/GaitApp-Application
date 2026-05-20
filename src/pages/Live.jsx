@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { Battery, BatteryLow, BatteryMedium, Footprints, Activity, Waves } from "lucide-react";
+import { ZoneHeatmap } from "../components/live/ZoneHeatMap";
 import { PressureHeatmap } from "../components/live/FootHeatmapPanel";
 import { useGaitStore } from "../store/gaitStore";
 
@@ -98,12 +99,22 @@ export default function LivePage() {
           </div>
         </div>
 
-        {/* HEATMAP */}
+        {/* RAW PRESSURE HEATMAP */}
         <div className="bg-white rounded-[32px] p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-[#111827] mb-5">Pressure Heatmap</h2>
+          <h2 className="text-lg font-bold text-[#111827] mb-5">Raw Pressure Map</h2>
           <div className="flex items-center justify-center gap-2 overflow-hidden">
             <PressureHeatmap side="LEFT" grid={viewData.leftPressure} compact />
             <PressureHeatmap side="RIGHT" grid={viewData.rightPressure} compact />
+          </div>
+        </div>
+
+        {/* FOOTSTRIKE ZONE HEATMAP */}
+        <div className="bg-white rounded-[32px] p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-[#111827] mb-5">Footstrike Zones</h2>
+          {/* Using flex-col for mobile, switching to flex-row on md+ screens due to text width */}
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 overflow-hidden">
+            <ZoneHeatmap side="LEFT" grid={viewData.leftPressure} compact />
+            <ZoneHeatmap side="RIGHT" grid={viewData.rightPressure} compact />
           </div>
         </div>
 
