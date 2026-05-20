@@ -6,4 +6,5 @@ export const API = {
   startSession: `${BASE_URL}/api/v1/session/start`,
   endSession: `${BASE_URL}/api/v1/session/end`,
   sendFrames: `${BASE_URL}/api/v1/session/frames`,
+  matrices: `${BASE_URL}/api/v1/session/matrices`,
 };

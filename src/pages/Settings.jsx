@@ -101,7 +101,7 @@ export default function SettingsPage() {
         <div className="bg-white p-5 rounded-3xl shadow-sm text-sm text-slate-600 space-y-4">
           <p>
             <strong className="text-slate-800 block mb-1">Gait Analysis System v1.0</strong>
-            This application pairs with dual ESP32 Bluetooth Low Energy (BLE) smart insoles to provide real-time biomechanical analysis.
+            This application pairs with dual STM32 Bluetooth Low Energy (BLE) smart insoles to provide real-time biomechanical analysis.
           </p>
           <p>
             <strong className="text-slate-800 block mb-1">How it Works</strong>
