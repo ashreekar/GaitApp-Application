@@ -2,8 +2,8 @@ import { BleClient } from "@capacitor-community/bluetooth-le";
 import { App } from "@capacitor/app";
 import { useGaitStore, SENSOR_KEYS } from "../store/gaitStore";
 
-export const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-export const CHAR_NOTIFY_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+export const SERVICE_UUID = "0000fe40-0000-1000-8000-00805f9b34fb";
+export const CHAR_NOTIFY_UUID = "0000fe42-0000-1000-8000-00805f9b34fb";
 const EXPECTED_PACKET_SIZE = 64; // 16 sensors (32 bytes) + 1 battery (1 byte)
 
 let connectedDevices = { LEFT: null, RIGHT: null };
